@@ -1,0 +1,259 @@
+"""Performance metrics calculation and reporting.
+
+Calculates comprehensive backtest performance metrics including
+returns, risk measures, and trade statistics.
+"""
+
+from decimal import Decimal
+from typing import TYPE_CHECKING
+
+import numpy as np
+import pandas as pd
+
+from bt.domain.models import PerformanceMetrics, Trade
+from bt.domain.types import Amount, Percentage
+from bt.logging import get_logger
+
+if TYPE_CHECKING:
+    from datetime import datetime
+
+logger = get_logger(__name__)
+
+
+def calculate_performance_metrics(
+    equity_curve: list[Decimal],
+    dates: list[datetime],
+    trades: list[Trade],
+    _initial_cash: Amount,
+) -> PerformanceMetrics:
+    """Calculate comprehensive performance metrics.
+
+    Args:
+        equity_curve: List of portfolio values over time
+        dates: List of corresponding dates
+        trades: List of completed trades
+        initial_cash: Initial capital
+
+    Returns:
+        PerformanceMetrics with all calculated metrics
+
+    Why separate function:
+    - Pure calculation logic for easy testing
+    - No side effects
+    - Reusable across different contexts
+    """
+    if len(equity_curve) < 2:
+        logger.warning("Insufficient data for metrics calculation")
+        return _empty_metrics()
+
+    # Convert to numpy array for calculations
+    equity = np.array([float(e) for e in equity_curve])
+
+    # Total return
+    total_return = Percentage(Decimal((equity[-1] / equity[0] - 1) * 100))
+
+    # Calculate CAGR
+    days = (dates[-1] - dates[0]).days
+    years = days / 365.25
+    cagr = Percentage(
+        Decimal(((equity[-1] / equity[0]) ** (1 / years) - 1) * 100 if years > 0 else 0)
+    )
+
+    # Calculate Maximum Drawdown
+    cummax = np.maximum.accumulate(equity)
+    drawdown = (equity - cummax) / cummax
+    mdd = Percentage(Decimal(drawdown.min() * 100))
+
+    # Calculate returns
+    returns = np.diff(equity) / equity[:-1]
+
+    # Sortino Ratio (using downside deviation)
+    downside_returns = returns[returns < 0]
+    downside_std = np.std(downside_returns) if len(downside_returns) > 0 else 0
+    mean_return = np.mean(returns)
+    sortino = Decimal((mean_return / downside_std * np.sqrt(252)) if downside_std != 0 else 0)
+
+    # Trade statistics
+    if trades:
+        winning_trades = [t for t in trades if t.pnl > 0]
+        losing_trades = [t for t in trades if t.pnl <= 0]
+
+        win_rate = Percentage(Decimal(len(winning_trades) / len(trades) * 100))
+
+        total_profit = sum(float(t.pnl) for t in winning_trades)
+        total_loss = abs(sum(float(t.pnl) for t in losing_trades))
+        # Avoid infinity by capping very large values
+        if total_loss != 0:
+            pf = Decimal(total_profit / total_loss)
+            profit_factor = min(pf, Decimal("999999"))  # Cap at large finite number
+        else:
+            profit_factor = Decimal("999999")  # All winning trades: cap at large number
+
+        avg_win = Amount(
+            Decimal(str(float(np.mean([float(t.pnl) for t in winning_trades]))))
+            if winning_trades
+            else Decimal("0")
+        )
+        avg_loss = Amount(
+            Decimal(str(float(np.mean([float(t.pnl) for t in losing_trades]))))
+            if losing_trades
+            else Decimal("0")
+        )
+    else:
+        win_rate = Percentage(Decimal("0"))
+        profit_factor = Decimal("0")
+        avg_win = Amount(Decimal("0"))
+        avg_loss = Amount(Decimal("0"))
+
+    # Yearly returns
+    yearly_returns = calculate_yearly_returns(equity, dates)
+
+    metrics = PerformanceMetrics(
+        total_return=total_return,
+        cagr=cagr,
+        mdd=mdd,
+        sortino_ratio=sortino,
+        win_rate=win_rate,
+        profit_factor=profit_factor,
+        num_trades=len(trades),
+        avg_win=avg_win,
+        avg_loss=avg_loss,
+        final_equity=Amount(Decimal(equity[-1])),
+        equity_curve=equity_curve,
+        dates=dates,
+        trades=trades,
+        yearly_returns=yearly_returns,
+    )
+
+    logger.info(
+        "Performance metrics calculated",
+        extra={
+            "cagr": float(cagr),
+            "mdd": float(mdd),
+            "win_rate": float(win_rate),
+            "num_trades": len(trades),
+        },
+    )
+
+    return metrics
+
+
+def calculate_yearly_returns(
+    equity: np.ndarray,
+    dates: list[datetime],
+) -> dict[int, Percentage]:
+    """Calculate returns for each year.
+
+    Args:
+        equity: Array of portfolio values
+        dates: List of dates
+
+    Returns:
+        Dictionary mapping year to return percentage
+    """
+    # [수정] 데이터 길이 불일치 방지 (짧은 쪽에 맞춤)
+    min_len = min(len(equity), len(dates))
+
+    if min_len == 0:
+        return {}
+
+    # 앞부분부터 min_len만큼만 사용
+    use_equity = equity[:min_len]
+    use_dates = dates[:min_len]
+
+    df = pd.DataFrame({"date": use_dates, "equity": use_equity})
+    df["year"] = df["date"].dt.year
+
+    yearly_returns = {}
+
+    for year in df["year"].unique():
+        year_data = df[df["year"] == year]
+        if len(year_data) > 1:
+            year_return = Percentage(
+                Decimal((year_data["equity"].iloc[-1] / year_data["equity"].iloc[0] - 1) * 100)
+            )
+            yearly_returns[int(year)] = year_return
+
+    return yearly_returns
+
+
+def _empty_metrics() -> PerformanceMetrics:
+    """Create empty metrics for edge cases."""
+    return PerformanceMetrics(
+        total_return=Percentage(Decimal("0")),
+        cagr=Percentage(Decimal("0")),
+        mdd=Percentage(Decimal("0")),
+        sortino_ratio=Decimal("0"),
+        win_rate=Percentage(Decimal("0")),
+        profit_factor=Decimal("0"),
+        num_trades=0,
+        avg_win=Amount(Decimal("0")),
+        avg_loss=Amount(Decimal("0")),
+        final_equity=Amount(Decimal("0")),
+    )
+
+
+def print_performance_report(metrics: PerformanceMetrics) -> None:
+    """Print formatted performance report.
+
+    Args:
+        metrics: Performance metrics to display
+    """
+    print("\n" + "=" * 60)
+    print("BACKTEST RESULTS")
+    print("=" * 60)
+
+    print("\n📊 Performance Metrics:")
+    print(f"  Total Return:    {float(metrics.total_return):>10.2f}%")
+    print(f"  CAGR:            {float(metrics.cagr):>10.2f}%")
+    print(f"  MDD:             {float(metrics.mdd):>10.2f}%")
+    print(f"  Sortino Ratio:   {float(metrics.sortino_ratio):>10.2f}")
+
+    print("\n💰 Trade Statistics:")
+    print(f"  Number of Trades: {metrics.num_trades:>9}")
+    print(f"  Win Rate:         {float(metrics.win_rate):>9.2f}%")
+    print(f"  Profit Factor:    {float(metrics.profit_factor):>9.2f}")
+    print(f"  Avg Win:          {float(metrics.avg_win):>9,.0f} KRW")
+    print(f"  Avg Loss:         {float(metrics.avg_loss):>9,.0f} KRW")
+
+    print("\n📈 Yearly Returns:")
+    for year, ret in sorted(metrics.yearly_returns.items()):
+        print(f"  {year}:  {float(ret):>10.2f}%")
+
+    print(f"\n💵 Final Equity:  {float(metrics.final_equity):>15,.0f} KRW")
+    print("=" * 60 + "\n")
+
+
+def print_sample_trades(trades: list[Trade], max_trades: int = 10) -> None:
+    """Print sample trades in formatted table.
+
+    Args:
+        trades: List of trades
+        max_trades: Maximum number of trades to display
+    """
+    if not trades:
+        return
+
+    print("\n" + "=" * 60)
+    print(f"SAMPLE TRADES (First {min(len(trades), max_trades)})")
+    print("=" * 60)
+    print(
+        f"{'Symbol':<6} {'Entry Date':<12} {'Exit Date':<12} "
+        f"{'Entry':<10} {'Exit':<10} {'Return':<8} {'P&L':<12}"
+    )
+    print("-" * 60)
+
+    for trade in trades[:max_trades]:
+        print(
+            f"{trade.symbol:<6} "
+            f"{trade.entry_date.strftime('%Y-%m-%d'):<12} "
+            f"{trade.exit_date.strftime('%Y-%m-%d'):<12} "
+            f"{float(trade.entry_price):<10,.0f} "
+            f"{float(trade.exit_price):<10,.0f} "
+            f"{float(trade.return_pct):>6.2f}% "
+            f"{float(trade.pnl):>11,.0f}"
+        )
+
+    if len(trades) > max_trades:
+        print(f"... and {len(trades) - max_trades} more trades")
+    print("=" * 60)
