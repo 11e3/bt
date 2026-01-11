@@ -80,3 +80,6 @@ Thumbs.db
 
 # Build artifacts
 *.whl
+
+bot.py
+bt.py

@@ -19,13 +19,13 @@ def main() -> None:
     fetcher = DataFetcher()
 
     # Define symbols and intervals
-    symbols = ["BTC", "ETH", "XRP", "TRX"]
+    symbols = ["ADA", "BCH"]  # ["DOGE", "SOL", "BTC", "ETH", "XRP", "TRX", "PEPE", "ETC"]
     intervals = [
-        "minute60",
-        "minute240",
+        # "minute60",
+        # "minute240",
         "day",
-        "week",
-        "month",
+        # "week",
+        # "month",
     ]
 
     # Fetch data for all symbols and intervals

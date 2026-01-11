@@ -40,7 +40,20 @@ def main() -> None:
     # [사용자 설정]
     # -------------------------------------------------------------------------
     strategy_name = "vbo"  # "vbo" or "bnh"
-    symbols = ["BTC", "ETH", "XRP", "TRX"]
+    symbols = [
+        "BTC",
+        "ETH",
+        "XRP",
+        "TRX",
+        "ADA",
+        # "SOL",
+        # "DOGE",
+        # "BCH",
+        # "ETC",
+    ]
+    top_n = 3
+    mom_lookback = 15
+
     interval = "day"
     initial_cash = 10_000_000
     fee = 0.0005
@@ -94,7 +107,7 @@ def main() -> None:
             "buy_price_func": pricing.get_vbo_buy_price,
             "sell_price_func": pricing.get_current_close,
             # VBO는 다종목 분산 투자 (Cash Partition)
-            "allocation_func": allocation.create_cash_partition_allocator(loaded_symbols),
+            "allocation_func": allocation.create_momentum_allocator(top_n=top_n, mom_lookback=mom_lookback),
         },
         "bnh": {
             "buy_conditions": {

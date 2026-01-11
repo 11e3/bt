@@ -1,0 +1,25 @@
+[Unit]
+Description=VBO Crypto Trading Bot
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/bt
+Environment=PATH=/home/ubuntu/bt/.venv/bin:/usr/bin
+ExecStart=/home/ubuntu/bt/.venv/bin/python /home/ubuntu/bt/bot.py
+Restart=always
+RestartSec=30
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vbo-bot
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

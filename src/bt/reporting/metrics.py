@@ -203,24 +203,24 @@ def print_performance_report(metrics: PerformanceMetrics) -> None:
     print("BACKTEST RESULTS")
     print("=" * 60)
 
-    print("\n📊 Performance Metrics:")
+    print("\nPerformance Metrics:")
     print(f"  Total Return:    {float(metrics.total_return):>10.2f}%")
     print(f"  CAGR:            {float(metrics.cagr):>10.2f}%")
     print(f"  MDD:             {float(metrics.mdd):>10.2f}%")
     print(f"  Sortino Ratio:   {float(metrics.sortino_ratio):>10.2f}")
 
-    print("\n💰 Trade Statistics:")
+    print("\nTrade Statistics:")
     print(f"  Number of Trades: {metrics.num_trades:>9}")
     print(f"  Win Rate:         {float(metrics.win_rate):>9.2f}%")
     print(f"  Profit Factor:    {float(metrics.profit_factor):>9.2f}")
     print(f"  Avg Win:          {float(metrics.avg_win):>9,.0f} KRW")
     print(f"  Avg Loss:         {float(metrics.avg_loss):>9,.0f} KRW")
 
-    print("\n📈 Yearly Returns:")
+    print("\nYearly Returns:")
     for year, ret in sorted(metrics.yearly_returns.items()):
         print(f"  {year}:  {float(ret):>10.2f}%")
 
-    print(f"\n💵 Final Equity:  {float(metrics.final_equity):>15,.0f} KRW")
+    print(f"\nFinal Equity:     {float(metrics.final_equity):>15,.0f} KRW")
     print("=" * 60 + "\n")
 
 

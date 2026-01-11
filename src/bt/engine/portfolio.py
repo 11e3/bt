@@ -251,3 +251,12 @@ class Portfolio:
     def trades(self) -> list[Trade]:
         """Get all completed trades."""
         return self._trades
+
+    @property
+    def value(self) -> Amount:
+        """Get current portfolio value (cash only).
+
+        Returns:
+            Current cash amount
+        """
+        return self.cash
