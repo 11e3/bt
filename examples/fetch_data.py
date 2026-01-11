@@ -19,7 +19,7 @@ def main() -> None:
     fetcher = DataFetcher()
 
     # Define symbols and intervals
-    symbols = ["ADA", "BCH"]  # ["DOGE", "SOL", "BTC", "ETH", "XRP", "TRX", "PEPE", "ETC"]
+    symbols = ["BTC", "ETH", "XRP", "TRX", "ADA"]
     intervals = [
         # "minute60",
         # "minute240",
@@ -34,7 +34,7 @@ def main() -> None:
     fetcher.fetch_multiple_symbols(
         symbols=symbols,
         intervals=intervals,
-        full_history=True,  # Change to False for updates
+        full_history=False,  # Change to False for updates
     )
 
 
