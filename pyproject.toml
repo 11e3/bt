@@ -85,6 +85,7 @@ select = [
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
+    "B019",   # lru_cache on methods (acceptable for performance)
 ]
 
 [tool.ruff.lint.per-file-ignores]
