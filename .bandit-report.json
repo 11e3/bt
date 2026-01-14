@@ -1,6 +1,6 @@
 {
   "errors": [],
-  "generated_at": "2026-01-14T01:14:27Z",
+  "generated_at": "2026-01-14T01:31:27Z",
   "metrics": {
     "_totals": {
       "CONFIDENCE.HIGH": 8,
@@ -11,7 +11,7 @@
       "SEVERITY.LOW": 4,
       "SEVERITY.MEDIUM": 5,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 10244,
+      "loc": 10279,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -102,7 +102,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 237,
+      "loc": 242,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -115,7 +115,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 319,
+      "loc": 322,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -297,7 +297,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 250,
+      "loc": 273,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -375,7 +375,7 @@
       "SEVERITY.LOW": 0,
       "SEVERITY.MEDIUM": 0,
       "SEVERITY.UNDEFINED": 0,
-      "loc": 395,
+      "loc": 399,
       "nosec": 0,
       "skipped_tests": 0
     },
@@ -909,7 +909,7 @@
       "test_name": "hardcoded_bind_all_interfaces"
     },
     {
-      "code": "238             # Save results to temporary file\n239             temp_file = Path(f\"/tmp/{backtest_id}_results.json\")\n240             with open(temp_file, \"w\") as f:\n",
+      "code": "238             # Save results to temporary file\n239             temp_file = Path(f\"/tmp/{backtest_id}_results.json\")\n240             with temp_file.open(\"w\") as f:\n",
       "col_offset": 29,
       "end_col_offset": 63,
       "filename": "src/bt/api/__init__.py",

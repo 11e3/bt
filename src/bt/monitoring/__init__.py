@@ -17,9 +17,9 @@ from collections import defaultdict, deque
 from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
 import psutil
 
@@ -82,7 +82,11 @@ class MetricsCollector:
         """Record a metric value."""
         with self._lock:
             metric = MetricValue(
-                name=name, value=value, timestamp=datetime.utcnow(), labels=labels or {}, unit=unit
+                name=name,
+                value=value,
+                timestamp=datetime.now(timezone.utc),
+                labels=labels or {},
+                unit=unit,
             )
             self._metrics[name].append(metric)
 
@@ -166,13 +170,13 @@ class MetricsCollector:
         for rule in self._alert_rules.values():
             if rule.name in self._alert_cooldowns:
                 cooldown_end = self._alert_cooldowns[rule.name]
-                if datetime.utcnow() < cooldown_end:
+                if datetime.now(timezone.utc) < cooldown_end:
                     continue
 
             try:
                 if rule.condition(value):
                     self._trigger_alert(rule, metric_name, value)
-                    self._alert_cooldowns[rule.name] = datetime.utcnow() + timedelta(
+                    self._alert_cooldowns[rule.name] = datetime.now(timezone.utc) + timedelta(
                         minutes=rule.cooldown_minutes
                     )
             except Exception as e:
@@ -187,7 +191,7 @@ class MetricsCollector:
             "threshold": getattr(rule.condition, "__name__", "custom"),
             "severity": rule.severity,
             "message": rule.message,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         log_level = {
@@ -329,7 +333,7 @@ class StructuredLogger:
         log_data = {
             "event_type": event_type,
             "backtest_id": backtest_id,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             **self._context,
             **extra,
         }

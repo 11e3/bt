@@ -4,7 +4,7 @@ Provides a single entry point for common backtesting operations
 with streamlined imports and configuration.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from bt.config.settings import BacktestConfig, create_production_config, get_config_manager
 from bt.core.container import Container, get_default_container, set_default_container

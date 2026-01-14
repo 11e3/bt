@@ -25,7 +25,7 @@ from bt.utils.logging import setup_logging
 logger = logging.getLogger(__name__)
 
 
-def scan_codebase(path: Path, output_format: str = "text") -> int:
+def scan_codebase(path: Path, _output_format: str = "text") -> int:
     """Scan codebase for security issues."""
     print("🔍 Scanning codebase for security vulnerabilities...")
 

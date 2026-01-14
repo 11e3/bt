@@ -11,6 +11,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from ..interfaces import (
+    IChartGenerator,
+    IDataProvider,
+    ILogger,
+    IMetricsGenerator,
+    IPortfolio,
+)
+
 
 class ServiceLifetime(Enum):
     """Service lifetime management."""
@@ -323,18 +331,16 @@ def auto_wire(interface_map: dict[type, str]):
 class CoreServices:
     """Descriptor definitions for core framework services."""
 
-    DATA_PROVIDER = ServiceDescriptor(
-        interface=type["IDataProvider"], lifetime=ServiceLifetime.SINGLETON
-    )
+    DATA_PROVIDER = ServiceDescriptor(interface=IDataProvider, lifetime=ServiceLifetime.SINGLETON)
 
-    PORTFOLIO = ServiceDescriptor(interface=type["IPortfolio"], lifetime=ServiceLifetime.SINGLETON)
+    PORTFOLIO = ServiceDescriptor(interface=IPortfolio, lifetime=ServiceLifetime.SINGLETON)
 
-    LOGGER = ServiceDescriptor(interface=type["ILogger"], lifetime=ServiceLifetime.SINGLETON)
+    LOGGER = ServiceDescriptor(interface=ILogger, lifetime=ServiceLifetime.SINGLETON)
 
     METRICS_GENERATOR = ServiceDescriptor(
-        interface=type["IMetricsGenerator"], lifetime=ServiceLifetime.SINGLETON
+        interface=IMetricsGenerator, lifetime=ServiceLifetime.SINGLETON
     )
 
     CHART_GENERATOR = ServiceDescriptor(
-        interface=type["IChartGenerator"], lifetime=ServiceLifetime.SINGLETON
+        interface=IChartGenerator, lifetime=ServiceLifetime.SINGLETON
     )

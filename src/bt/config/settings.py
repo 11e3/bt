@@ -258,7 +258,7 @@ class ConfigurationManager:
             config = self.get_config(self._determine_config_type(key))
             return getattr(config, key, default)
         except Exception as e:
-            raise ConfigurationError(f"Error getting config value {key}: {e}")
+            raise ConfigurationError(f"Error getting config value {key}: {e}") from e
 
     def _determine_config_type(self, key: str) -> str:
         """Determine which config section contains a key."""

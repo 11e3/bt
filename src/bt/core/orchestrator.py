@@ -4,7 +4,8 @@ Separates high-level backtest coordination from low-level
 execution, portfolio management, and performance tracking.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from bt.domain.types import Amount
 from bt.interfaces.protocols import (
@@ -14,6 +15,9 @@ from bt.interfaces.protocols import (
     IStrategy,
 )
 from bt.utils.decimal_cache import get_decimal
+
+if TYPE_CHECKING:
+    from bt.core.container import IContainer
 
 
 class BacktestOrchestrator:
@@ -335,7 +339,7 @@ class PerformanceTracker:
     def initialize(self, symbols: list[str], initial_value: Amount) -> None:
         """Initialize tracking with starting values."""
         self._initial_value = float(initial_value)
-        self._dates.append(datetime.now())  # Start with current date
+        self._dates.append(datetime.now(timezone.utc))  # Start with current date
         self._equity_values.append(float(initial_value))
 
         self.logger.info(

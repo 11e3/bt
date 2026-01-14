@@ -11,9 +11,9 @@ Provides HTTP endpoints for:
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import uvicorn
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
@@ -82,14 +82,14 @@ class BacktestJob:
     """Represents a background backtest job."""
 
     def __init__(self, request: BacktestRequest):
-        self.id = f"bt_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{hash(str(request)) % 10000}"
-        self.request = request
-        self.status = "pending"
-        self.created_at = datetime.now()
-        self.completed_at = None
-        self.results = None
-        self.error = None
-        self.task = None
+        self.id: str = f"bt_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{hash(str(request)) % 10000}"
+        self.request: BacktestRequest = request
+        self.status: str = "pending"
+        self.created_at: datetime = datetime.now(timezone.utc)
+        self.completed_at: datetime | None = None
+        self.results: dict[str, Any] | None = None
+        self.error: str | None = None
+        self.task: asyncio.Task | None = None
 
     def to_response(self) -> BacktestResponse:
         """Convert to API response."""
@@ -122,7 +122,7 @@ class BacktestAPI:
 
         # Job management
         self.jobs: dict[str, BacktestJob] = {}
-        self.start_time = datetime.now()
+        self.start_time = datetime.now(timezone.utc)
 
         # Setup routes
         self._setup_routes()
@@ -137,9 +137,9 @@ class BacktestAPI:
             """Health check endpoint."""
             return HealthResponse(
                 status="healthy",
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 version="1.0.0",
-                uptime_seconds=(datetime.now() - self.start_time).total_seconds(),
+                uptime_seconds=(datetime.now(timezone.utc) - self.start_time).total_seconds(),
                 active_backtests=len([j for j in self.jobs.values() if j.status == "running"]),
             )
 
@@ -209,7 +209,7 @@ class BacktestAPI:
             if job.status == "running" and job.task:
                 job.task.cancel()
                 job.status = "cancelled"
-                job.completed_at = datetime.now()
+                job.completed_at = datetime.now(timezone.utc)
 
             return {"message": f"Backtest {backtest_id} cancelled"}
 
@@ -221,7 +221,7 @@ class BacktestAPI:
                 return {"strategies": strategies}
             except Exception as e:
                 logger.error(f"Error listing strategies: {e}")
-                raise HTTPException(status_code=500, detail=str(e))
+                raise HTTPException(status_code=500, detail=str(e)) from e
 
         @self.app.get("/backtests/{backtest_id}/results/download")
         async def download_results(backtest_id: str):
@@ -237,7 +237,7 @@ class BacktestAPI:
 
             # Save results to temporary file
             temp_file = Path(f"/tmp/{backtest_id}_results.json")
-            with open(temp_file, "w") as f:
+            with temp_file.open("w") as f:
                 json.dump(job.results, f, indent=2, default=str)
 
             return FileResponse(
@@ -246,7 +246,7 @@ class BacktestAPI:
 
         # Error handlers
         @self.app.exception_handler(Exception)
-        async def global_exception_handler(request, exc):
+        async def global_exception_handler(_request, exc):
             logger.error(f"Unhandled exception: {exc}", exc_info=True)
             return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
@@ -278,19 +278,19 @@ class BacktestAPI:
 
             job.status = "completed"
             job.results = results
-            job.completed_at = datetime.now()
+            job.completed_at = datetime.now(timezone.utc)
 
             logger.info(f"Completed backtest {job.id}")
 
         except asyncio.CancelledError:
             job.status = "cancelled"
-            job.completed_at = datetime.now()
+            job.completed_at = datetime.now(timezone.utc)
             logger.info(f"Cancelled backtest {job.id}")
 
         except Exception as e:
             job.status = "failed"
             job.error = str(e)
-            job.completed_at = datetime.now()
+            job.completed_at = datetime.now(timezone.utc)
             logger.error(f"Failed backtest {job.id}: {e}")
 
     def _generate_sample_data(self, symbols: list[str]) -> dict[str, Any]:
