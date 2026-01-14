@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # Development environment
+  bt-dev:
+    build:
+      context: .
+      target: base
+    volumes:
+      - .:/app
+      - /app/__pycache__
+    working_dir: /app
+    environment:
+      - BT_ENV=development
+      - PYTHONPATH=/app/src
+    command: sleep infinity
+    ports:
+      - "8000:8000"
+    networks:
+      - bt-network
+
+  # Production environment
+  bt-prod:
+    build:
+      context: .
+      target: production
+    environment:
+      - BT_ENV=production
+      - PYTHONPATH=/app/src
+    command: ["python", "-c", "import bt; print('BT Framework ready')"]
+    ports:
+      - "8001:8000"
+    networks:
+      - bt-network
+    restart: unless-stopped
+
+  # Jupyter notebook for tutorials and experimentation
+  bt-jupyter:
+    build:
+      context: .
+      target: base
+    volumes:
+      - .:/app
+      - ./notebooks:/app/notebooks
+    working_dir: /app
+    environment:
+      - BT_ENV=development
+      - PYTHONPATH=/app/src
+      - JUPYTER_TOKEN=bt-framework
+    command: jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+    ports:
+      - "8888:8888"
+    networks:
+      - bt-network
+
+  # Data persistence service (optional)
+  bt-data:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=bt_data
+      - POSTGRES_USER=bt_user
+      - POSTGRES_PASSWORD=bt_password
+    volumes:
+      - bt_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - bt-network
+    profiles:
+      - with-db
+
+  # Redis for caching (optional)
+  bt-cache:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - bt_cache:/data
+    networks:
+      - bt-network
+    profiles:
+      - with-cache
+
+  # Monitoring with Grafana + Prometheus (optional)
+  bt-monitoring:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - bt_grafana:/var/lib/grafana
+    networks:
+      - bt-network
+    profiles:
+      - monitoring
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - bt_prometheus:/prometheus
+    networks:
+      - bt-network
+    profiles:
+      - monitoring
+
+volumes:
+  bt_data:
+  bt_cache:
+  bt_grafana:
+  bt_prometheus:
+
+networks:
+  bt-network:
+    driver: bridge

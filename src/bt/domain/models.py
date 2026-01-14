@@ -6,14 +6,10 @@ Models are validated using Pydantic.
 
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from bt.domain.types import Amount, Fee, Percentage, Price, Quantity
-
-if TYPE_CHECKING:
-    from pydantic import ValidationInfo
 
 
 class BacktestConfig(BaseModel):

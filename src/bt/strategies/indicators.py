@@ -4,12 +4,8 @@ Pure functions for calculating technical indicators from market data.
 No trading logic, just math.
 """
 
-from typing import TYPE_CHECKING
-
 import numpy as np
-
-if TYPE_CHECKING:
-    import pandas as pd
+import pandas as pd
 
 
 def calculate_noise_ratio(df: pd.DataFrame) -> pd.Series:

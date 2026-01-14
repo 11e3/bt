@@ -4,16 +4,13 @@ Advanced cross-validation method that handles time-series data
 with purging and embargo to prevent leakage.
 """
 
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
+import pandas as pd
 
-from bt.logging import get_logger
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    import pandas as pd
+from bt.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -62,7 +59,9 @@ class CombinatorialPurgedCV:
             },
         )
 
-    def create_splits(self, n_samples: int) -> list[tuple[np.ndarray, np.ndarray]]:
+    def create_splits(
+        self, n_samples: int
+    ) -> list[tuple[np.ndarray[Any, Any], np.ndarray[Any, Any]]]:
         """Create train/test splits with purging and embargo.
 
         Args:

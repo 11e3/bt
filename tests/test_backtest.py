@@ -1,6 +1,6 @@
 """Test BacktestEngine module."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pandas as pd
@@ -28,7 +28,7 @@ def sample_config() -> BacktestConfig:
 @pytest.fixture
 def sample_ohlcv_df() -> pd.DataFrame:
     """Provide sample OHLCV DataFrame with enough data."""
-    base_date = datetime(2024, 1, 1, tzinfo=UTC)
+    base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
     dates = [base_date + timedelta(days=i) for i in range(20)]
 
     return pd.DataFrame(
@@ -190,7 +190,7 @@ class TestBacktestEngineRun:
         """Test backtest run with multiple symbols."""
         engine = BacktestEngine(config=sample_config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(20)]
 
         btc_df = pd.DataFrame(

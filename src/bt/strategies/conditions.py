@@ -3,9 +3,9 @@
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-# indicators 및 pricing 임포트
 from bt.strategies.indicators import calculate_noise_ratio
 from bt.strategies.pricing import get_vbo_buy_price
+from bt.utils.indicator_cache import get_indicator_cache
 
 if TYPE_CHECKING:
     from bt.engine.backtest import BacktestEngine
@@ -14,23 +14,25 @@ if TYPE_CHECKING:
 # --- Common Conditions ---
 
 
-def no_open_position(engine: BacktestEngine, symbol: str) -> bool:
+def no_open_position(engine: "BacktestEngine", symbol: str) -> bool:
+    if engine.portfolio is None:
+        return False
     position = engine.portfolio.get_position(symbol)
     return not position.is_open
 
 
-def has_open_position(engine: BacktestEngine, symbol: str) -> bool:
+def has_open_position(engine: "BacktestEngine", symbol: str) -> bool:
     return not no_open_position(engine, symbol)
 
 
-def never(engine: BacktestEngine, symbol: str) -> bool:
+def never(engine: "BacktestEngine", symbol: str) -> bool:
     return False
 
 
 # --- Trend Conditions ---
 
 
-def price_above_short_ma(engine: BacktestEngine, symbol: str) -> bool:
+def price_above_short_ma(engine: "BacktestEngine", symbol: str) -> bool:
     """VBO: Buy Price > Short-term SMA of Close."""
     lookback = engine.config.lookback
     bars = engine.get_bars(symbol, lookback + 1)
@@ -38,18 +40,19 @@ def price_above_short_ma(engine: BacktestEngine, symbol: str) -> bool:
     if bars is None or len(bars) < lookback + 1:
         return False
 
-    # 지표 계산: SMA (이전 데이터 기준)
-    # iloc[:-1]은 현재 진행 중인 봉을 제외하기 위함
-    close_series = bars["close"].iloc[:-1]
-    # tail(lookback).mean()은 calculate_sma의 마지막 값과 동일
-    close_sma = close_series.tail(lookback).mean()
+    # Use optimized indicator caching
+    cache = get_indicator_cache()
+    close_series = bars["close"].iloc[:-1]  # Exclude current bar
+
+    # Get cached SMA
+    close_sma = cache.calculate_indicator(symbol, "sma", lookback, close_series)
 
     buy_price = get_vbo_buy_price(engine, symbol)
 
     return Decimal(buy_price) > Decimal(str(close_sma))
 
 
-def price_above_long_ma(engine: BacktestEngine, symbol: str) -> bool:
+def price_above_long_ma(engine: "BacktestEngine", symbol: str) -> bool:
     """VBO: Buy Price > Long-term SMA of Close."""
     lookback = engine.config.lookback
     multiplier = engine.config.multiplier
@@ -59,15 +62,17 @@ def price_above_long_ma(engine: BacktestEngine, symbol: str) -> bool:
     if bars is None or len(bars) < long_lookback + 1:
         return False
 
+    # Use optimized indicator caching
+    cache = get_indicator_cache()
     close_series = bars["close"].iloc[:-1]
-    close_sma_long = close_series.tail(long_lookback).mean()
+    close_sma_long = cache.calculate_indicator(symbol, "sma", long_lookback, close_series)
 
     buy_price = get_vbo_buy_price(engine, symbol)
 
     return Decimal(buy_price) > Decimal(str(close_sma_long))
 
 
-def close_below_short_ma(engine: BacktestEngine, symbol: str) -> bool:
+def close_below_short_ma(engine: "BacktestEngine", symbol: str) -> bool:
     """Sell: Current Close < Short-term SMA."""
     lookback = engine.config.lookback
     current_bar = engine.get_bar(symbol)
@@ -79,8 +84,10 @@ def close_below_short_ma(engine: BacktestEngine, symbol: str) -> bool:
     if bars is None or len(bars) < lookback + 1:
         return False
 
+    # Use optimized indicator caching
+    cache = get_indicator_cache()
     close_series = bars["close"].iloc[:-1]
-    close_sma = close_series.tail(lookback).mean()
+    close_sma = cache.calculate_indicator(symbol, "sma", lookback, close_series)
 
     return Decimal(str(current_bar["close"])) < Decimal(str(close_sma))
 
@@ -88,7 +95,7 @@ def close_below_short_ma(engine: BacktestEngine, symbol: str) -> bool:
 # --- VBO Specific Conditions ---
 
 
-def vbo_breakout_triggered(engine: BacktestEngine, symbol: str) -> bool:
+def vbo_breakout_triggered(engine: "BacktestEngine", symbol: str) -> bool:
     current_bar = engine.get_bar(symbol)
     if current_bar is None:
         return False
@@ -97,7 +104,7 @@ def vbo_breakout_triggered(engine: BacktestEngine, symbol: str) -> bool:
     return Decimal(str(current_bar["high"])) >= Decimal(buy_price)
 
 
-def noise_is_decreasing(engine: BacktestEngine, symbol: str) -> bool:
+def noise_is_decreasing(engine: "BacktestEngine", symbol: str) -> bool:
     """Checks if Short-term Noise MA < Long-term Noise MA."""
     lookback = engine.config.lookback
     multiplier = engine.config.multiplier

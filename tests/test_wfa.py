@@ -1,6 +1,6 @@
 """Test WFA (Walk Forward Analysis) validation."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pandas as pd
@@ -12,7 +12,7 @@ from bt.validation.wfa import WalkForwardAnalysis
 @pytest.fixture
 def sample_ohlcv_df() -> pd.DataFrame:
     """Provide sample OHLCV DataFrame."""
-    base_date = datetime(2024, 1, 1, tzinfo=UTC)
+    base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
     dates = [base_date + timedelta(days=i) for i in range(100)]
 
     return pd.DataFrame(
@@ -90,7 +90,7 @@ class TestSplitData:
 
         small_df = pd.DataFrame(
             {
-                "datetime": [datetime(2024, 1, i + 1, tzinfo=UTC) for i in range(20)],
+                "datetime": [datetime(2024, 1, i + 1, tzinfo=timezone.utc) for i in range(20)],
                 "close": [100 + i for i in range(20)],
             }
         )

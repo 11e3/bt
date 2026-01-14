@@ -3,20 +3,20 @@
 Main orchestrator that coordinates data, portfolio, and strategy execution.
 """
 
-from decimal import Decimal
+from datetime import datetime
 from typing import TYPE_CHECKING
 
+import pandas as pd
+
+from bt.domain.models import BacktestConfig
 from bt.domain.types import Price, Quantity
 from bt.engine.data_provider import DataProvider
 from bt.engine.portfolio import Portfolio
-from bt.logging import get_logger
+from bt.utils.constants import PRECISION_BUFFER
+from bt.utils.decimal_cache import get_decimal
+from bt.utils.logging import get_logger
 
 if TYPE_CHECKING:
-    from datetime import datetime
-
-    import pandas as pd
-
-    from bt.domain.models import BacktestConfig
     from bt.domain.types import (
         AllocationFunc,
         ConditionFunc,
@@ -54,12 +54,20 @@ class BacktestEngine:
         self.config = config
 
         # Dependency injection with defaults
-        self.data_provider = data_provider or DataProvider()
-        self.portfolio = portfolio or Portfolio(
-            initial_cash=config.initial_cash,
-            fee=config.fee,
-            slippage=config.slippage,
-        )
+        self.data_provider = data_provider
+        self.portfolio = portfolio
+        if self.data_provider is None:
+            from bt.core.simple_implementations import SimpleDataProvider
+
+            self.data_provider = SimpleDataProvider()
+        if self.portfolio is None:
+            from bt.core.simple_implementations import SimplePortfolio
+
+            self.portfolio = SimplePortfolio(
+                initial_cash=config.initial_cash,
+                fee=config.fee,
+                slippage=config.slippage,
+            )
 
         logger.info(
             "BacktestEngine initialized",
@@ -75,24 +83,30 @@ class BacktestEngine:
             symbol: Trading symbol
             df: DataFrame with OHLCV data
         """
+        if self.data_provider is None:
+            raise ValueError("Data provider not initialized")
         self.data_provider.load_data(symbol, df)
 
     def get_bar(self, symbol: str, offset: int = 0) -> pd.Series | None:
         """Get bar data (delegates to data provider)."""
+        if self.data_provider is None:
+            return None
         return self.data_provider.get_bar(symbol, offset)
 
     def get_bars(self, symbol: str, count: int) -> pd.DataFrame | None:
         """Get multiple bars (delegates to data provider)."""
+        if self.data_provider is None:
+            return None
         return self.data_provider.get_bars(symbol, count)
 
     def run(
         self,
         symbols: list[str],
-        buy_conditions: dict[str, ConditionFunc],
-        sell_conditions: dict[str, ConditionFunc],
-        buy_price_func: PriceFunc,
-        sell_price_func: PriceFunc,
-        allocation_func: AllocationFunc,
+        buy_conditions: dict[str, "ConditionFunc"],
+        sell_conditions: dict[str, "ConditionFunc"],
+        buy_price_func: "PriceFunc",
+        sell_price_func: "PriceFunc",
+        allocation_func: "AllocationFunc",
     ) -> None:
         """Run backtest with given strategy.
 
@@ -106,6 +120,8 @@ class BacktestEngine:
         """
         # Initialize starting position for all symbols
         start_idx = self.config.lookback * self.config.multiplier
+        if self.data_provider is None:
+            raise ValueError("Data provider not initialized")
         for symbol in symbols:
             self.data_provider.set_current_bar(symbol, start_idx)
 
@@ -118,20 +134,40 @@ class BacktestEngine:
 
         # Main event loop
         while self.data_provider.has_more_data():
-            current_date: datetime | None = None
-            current_prices: dict[str, Price] = {}
+            # Optimized batch data access
+            if hasattr(self.data_provider, "get_prices_batch"):
+                # Use optimized batch methods if available
+                raw_prices = self.data_provider.get_prices_batch(symbols)
+                current_prices = {
+                    symbol: Price(get_decimal(price)) for symbol, price in raw_prices.items()
+                }
+                current_date = self.data_provider.get_current_datetime_batch(symbols)
+            else:
+                # Fallback to individual lookups
+                current_date: datetime | None = None
+                current_prices: dict[str, Price] = {}
 
-            # Collect current prices and date
-            for symbol in symbols:
-                bar = self.data_provider.get_bar(symbol)
-                if bar is not None:
-                    current_prices[symbol] = Price(Decimal(str(bar["close"])))
-                    if current_date is None:
-                        current_date = bar["datetime"]
+                # Collect current prices and date
+                for symbol in symbols:
+                    bar = self.data_provider.get_bar(symbol)
+                    if bar is not None:
+                        current_prices[symbol] = Price(get_decimal(bar["close"]))
+                        if current_date is None:
+                            dt = bar["datetime"]
+                            if isinstance(dt, datetime):
+                                current_date = dt
+                            elif hasattr(dt, "to_pydatetime"):
+                                current_date = dt.to_pydatetime()
+                            else:
+                                current_date = pd.to_datetime(dt).to_pydatetime()
 
             # Update equity curve
             if current_date:
-                self.portfolio.update_equity(current_date, current_prices)
+                # Convert Price to Decimal for portfolio
+                decimal_prices = {
+                    symbol: get_decimal(price) for symbol, price in current_prices.items()
+                }
+                self.portfolio.update_equity(current_date, decimal_prices)
 
             # Process each symbol
             for symbol in symbols:
@@ -147,7 +183,16 @@ class BacktestEngine:
 
                     if all(sell_signals):
                         sell_price = sell_price_func(self, symbol)
-                        self.portfolio.sell(symbol, sell_price, bar["datetime"])
+                        dt = bar["datetime"]
+                        if isinstance(dt, datetime):
+                            sell_date = dt
+                        elif hasattr(dt, "to_pydatetime"):
+                            sell_date = dt.to_pydatetime()
+                        else:
+                            sell_date = pd.to_datetime(dt).to_pydatetime()
+                        self.portfolio.sell(
+                            symbol, sell_price, Quantity(position.quantity), sell_date
+                        )
 
                 # Check buy conditions
                 elif not position.is_open:
@@ -158,23 +203,23 @@ class BacktestEngine:
 
                         # --- Precise Quantity Calculation with Safety Clamp ---
 
-                        # 1. Calculate actual unit cost (Price + Slippage + Fee)
-                        # Matches Portfolio.buy logic: cost = price * (1+slippage) * quantity * (1+fee)
-                        # Note: Simple addition (1 + fee + slippage) is inaccurate for compound costs
-                        execution_price = Decimal(buy_price) * (
-                            Decimal("1") + Decimal(self.config.slippage)
+                        # 1. Calculate actual unit cost (matches Portfolio.buy logic exactly)
+                        execution_price = get_decimal(buy_price) * (
+                            get_decimal("1") + get_decimal(self.config.slippage)
                         )
-                        unit_cost = execution_price * (Decimal("1") + Decimal(self.config.fee))
+                        unit_cost = execution_price * (
+                            get_decimal("1") + get_decimal(self.config.fee)
+                        )
 
-                        quantity = Quantity(Decimal(0))
+                        quantity = Quantity(get_decimal(0))
 
                         if unit_cost > 0:
                             # 2. Max quantity affordable with current cash
-                            max_qty = Decimal(self.portfolio.cash) / unit_cost
+                            max_qty = get_decimal(self.portfolio.cash) / unit_cost
 
                             # 3. Apply epsilon buffer (0.99999) to prevent float precision rejection
                             # This ensures we don't try to spend 100.0000001% of cash due to rounding
-                            max_affordable_qty = Quantity(max_qty * Decimal("0.99999"))
+                            max_affordable_qty = Quantity(max_qty * get_decimal(PRECISION_BUFFER))
 
                             # 4. Determine requested quantity
                             if allocation_func is not None:
@@ -190,7 +235,14 @@ class BacktestEngine:
                                 quantity = requested_qty
 
                         if quantity > 0:
-                            self.portfolio.buy(symbol, buy_price, quantity, bar["datetime"])
+                            dt = bar["datetime"]
+                            if isinstance(dt, datetime):
+                                buy_date = dt
+                            elif hasattr(dt, "to_pydatetime"):
+                                buy_date = dt.to_pydatetime()
+                            else:
+                                buy_date = pd.to_datetime(dt).to_pydatetime()
+                            self.portfolio.buy(symbol, buy_price, quantity, buy_date)
 
             # Move to next bar
             self.data_provider.next_bar()
@@ -206,7 +258,7 @@ class BacktestEngine:
 
     def _evaluate_conditions(
         self,
-        conditions: dict[str, ConditionFunc],
+        conditions: dict[str, "ConditionFunc"],
         symbol: str,
         condition_type: str,
     ) -> list[bool]:

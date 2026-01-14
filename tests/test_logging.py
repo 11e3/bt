@@ -5,7 +5,7 @@ import logging
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from bt.logging import (
+from bt.utils.logging import (
     JSONFormatter,
     TextFormatter,
     get_logger,

@@ -3,15 +3,17 @@
 Manages cash, positions, and trade execution with proper validation.
 """
 
+from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
+
+import numpy as np
+import pandas as pd
 
 from bt.domain.models import Position, Trade
 from bt.domain.types import Amount, Fee, Percentage, Price, Quantity
-from bt.logging import get_logger
-
-if TYPE_CHECKING:
-    from datetime import datetime
+from bt.utils.constants import ONE
+from bt.utils.decimal_cache import get_decimal
+from bt.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -47,8 +49,9 @@ class Portfolio:
 
         self._positions: dict[str, Position] = {}
         self._trades: list[Trade] = []
-        self._equity_curve: list[Decimal] = [Decimal(initial_cash)]
-        self._dates: list[datetime] = []
+        # Optimized storage using numpy arrays
+        self._equity_curve = np.array([float(initial_cash)], dtype=np.float64)
+        self._dates = np.array([], dtype="datetime64[ns]")
 
         logger.info(
             "Portfolio initialized",
@@ -87,11 +90,11 @@ class Portfolio:
             True if order executed, False if insufficient funds
         """
         # Apply slippage (price increases when buying)
-        execution_price = Price(Decimal(price) * (Decimal("1") + Decimal(self.slippage)))
+        execution_price = Price(get_decimal(price) * (ONE + get_decimal(self.slippage)))
 
         # Calculate total cost including fees
         cost = Amount(
-            Decimal(execution_price) * Decimal(quantity) * (Decimal("1") + Decimal(self.fee))
+            get_decimal(execution_price) * get_decimal(quantity) * (ONE + get_decimal(self.fee))
         )
 
         if cost > self.cash:
@@ -106,16 +109,27 @@ class Portfolio:
             return False
 
         # Update cash
-        self.cash = Amount(Decimal(self.cash) - Decimal(cost))
+        self.cash = Amount(self.cash - cost)
 
-        # Update position
-        self.get_position(symbol)
-        self._positions[symbol] = Position(
-            symbol=symbol,
-            quantity=quantity,
-            entry_price=execution_price,
-            entry_date=date,
-        )
+        # Update position (add to existing or create new)
+        position = self.get_position(symbol)
+        if position.is_open:
+            # Add to existing position (weighted average pricing)
+            total_cost = position.quantity * position.entry_price
+            new_cost = quantity * execution_price
+            total_quantity = position.quantity + quantity
+
+            avg_price = (total_cost + new_cost) / total_quantity
+            position.entry_price = Price(avg_price)
+            position.quantity = Quantity(total_quantity)
+        else:
+            # Create new position
+            self._positions[symbol] = Position(
+                symbol=symbol,
+                quantity=Quantity(quantity),
+                entry_price=Price(execution_price),
+                entry_date=date,
+            )
 
         logger.debug(
             "Buy order executed",
@@ -156,33 +170,40 @@ class Portfolio:
             return False
 
         # Apply slippage (price decreases when selling)
-        execution_price = Price(Decimal(price) * (Decimal("1") - Decimal(self.slippage)))
+        execution_price = Price(get_decimal(price) * (ONE - get_decimal(self.slippage)))
 
         # Calculate proceeds after fees
         proceeds = Amount(
-            Decimal(execution_price)
-            * Decimal(position.quantity)
-            * (Decimal("1") - Decimal(self.fee))
+            get_decimal(execution_price)
+            * get_decimal(position.quantity)
+            * (ONE - get_decimal(self.fee))
         )
 
         # Update cash
-        self.cash = Amount(Decimal(self.cash) + Decimal(proceeds))
+        self.cash = Amount(self.cash + Decimal(proceeds))
 
-        # Calculate P&L
-        pnl = Amount(
-            (Decimal(execution_price) - Decimal(position.entry_price))
-            * Decimal(position.quantity)
-            * (Decimal("1") - Decimal(self.fee))
+        # Calculate P&L (actual proceeds minus actual cost)
+        entry_cost = (
+            position.entry_price
+            * position.quantity
+            * (Decimal("1") + Decimal(self.slippage))
+            * (Decimal("1") + Decimal(self.fee))
         )
+        actual_proceeds = Decimal(proceeds)
+        pnl = Amount(actual_proceeds - entry_cost)
         return_pct = Percentage(
             (Decimal(execution_price) / Decimal(position.entry_price) - Decimal("1"))
             * Decimal("100")
         )
 
         # Record trade
+        entry_date = position.entry_date
+        if entry_date is None:
+            entry_date = date  # This shouldn't happen in normal operation, but prevents crashes
+
         trade = Trade(
             symbol=symbol,
-            entry_date=position.entry_date,  # type: ignore
+            entry_date=entry_date,
             exit_date=date,
             entry_price=position.entry_price,
             exit_price=execution_price,
@@ -234,18 +255,19 @@ class Portfolio:
             prices: Current prices for all symbols
         """
         total_value = self.get_total_value(prices)
-        self._equity_curve.append(Decimal(total_value))
-        self._dates.append(date)
+        # Optimized array operations
+        self._equity_curve = np.append(self._equity_curve, float(total_value))
+        self._dates = np.append(self._dates, np.datetime64(date))
 
     @property
     def equity_curve(self) -> list[Decimal]:
         """Get equity curve history."""
-        return self._equity_curve
+        return [get_decimal(val) for val in self._equity_curve.tolist()]
 
     @property
     def dates(self) -> list[datetime]:
         """Get date history."""
-        return self._dates
+        return [pd.Timestamp(val).to_pydatetime() for val in self._dates.tolist() if pd.notna(val)]
 
     @property
     def trades(self) -> list[Trade]:

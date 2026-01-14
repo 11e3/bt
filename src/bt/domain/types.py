@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     AllocationFunc = Callable[["BacktestEngine", str, Price], Quantity]
 
     # 전략 딕셔너리 구조 정의 (선택 사항)
-    class StrategyConfig(dict[str, "ConditionFunc | PriceFunc | AllocationFunc"]):
+    class StrategyConfig(dict[str, "ConditionFunc" | "PriceFunc" | "AllocationFunc"]):
         buy_conditions: dict[str, ConditionFunc]
         sell_conditions: dict[str, ConditionFunc]
         buy_price_func: PriceFunc

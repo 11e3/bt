@@ -4,14 +4,12 @@ Splits data into rolling windows and performs walk-forward testing
 to evaluate strategy robustness over time.
 """
 
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable
+from typing import Any
 
-from bt.logging import get_logger
+import pandas as pd
 
-if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    import pandas as pd
+from bt.utils.logging import get_logger
 
 logger = get_logger(__name__)
 

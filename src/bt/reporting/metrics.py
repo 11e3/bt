@@ -4,18 +4,16 @@ Calculates comprehensive backtest performance metrics including
 returns, risk measures, and trade statistics.
 """
 
+from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import Any
 
 import numpy as np
-import pandas as pd
 
 from bt.domain.models import PerformanceMetrics, Trade
 from bt.domain.types import Amount, Percentage
-from bt.logging import get_logger
-
-if TYPE_CHECKING:
-    from datetime import datetime
+from bt.utils.constants import METRIC_PRECISION, ZERO
+from bt.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -69,9 +67,13 @@ def calculate_performance_metrics(
 
     # Sortino Ratio (using downside deviation)
     downside_returns = returns[returns < 0]
-    downside_std = np.std(downside_returns) if len(downside_returns) > 0 else 0
-    mean_return = np.mean(returns)
-    sortino = Decimal((mean_return / downside_std * np.sqrt(252)) if downside_std != 0 else 0)
+    downside_std = np.std(downside_returns) if len(downside_returns) > 1 else 0
+    mean_return = np.mean(returns) if len(returns) > 0 else 0
+    annualized_mean = mean_return * 252  # Annualize mean return
+    annualized_downside_std = downside_std * np.sqrt(252) if downside_std > 0 else 0
+    sortino = Decimal(
+        (annualized_mean / annualized_downside_std) if annualized_downside_std != 0 else 0
+    )
 
     # Trade statistics
     if trades:
@@ -85,25 +87,25 @@ def calculate_performance_metrics(
         # Avoid infinity by capping very large values
         if total_loss != 0:
             pf = Decimal(total_profit / total_loss)
-            profit_factor = min(pf, Decimal("999999"))  # Cap at large finite number
+            profit_factor = min(pf, METRIC_PRECISION)  # Cap at large finite number
         else:
-            profit_factor = Decimal("999999")  # All winning trades: cap at large number
+            profit_factor = METRIC_PRECISION  # All winning trades: cap at large number
 
         avg_win = Amount(
             Decimal(str(float(np.mean([float(t.pnl) for t in winning_trades]))))
             if winning_trades
-            else Decimal("0")
+            else ZERO
         )
         avg_loss = Amount(
             Decimal(str(float(np.mean([float(t.pnl) for t in losing_trades]))))
             if losing_trades
-            else Decimal("0")
+            else ZERO
         )
     else:
-        win_rate = Percentage(Decimal("0"))
-        profit_factor = Decimal("0")
-        avg_win = Amount(Decimal("0"))
-        avg_loss = Amount(Decimal("0"))
+        win_rate = Percentage(ZERO)
+        profit_factor = ZERO
+        avg_win = Amount(ZERO)
+        avg_loss = Amount(ZERO)
 
     # Yearly returns
     yearly_returns = calculate_yearly_returns(equity, dates)
@@ -139,7 +141,7 @@ def calculate_performance_metrics(
 
 
 def calculate_yearly_returns(
-    equity: np.ndarray,
+    equity: np.ndarray[Any, Any],
     dates: list[datetime],
 ) -> dict[int, Percentage]:
     """Calculate returns for each year.
@@ -161,18 +163,23 @@ def calculate_yearly_returns(
     use_equity = equity[:min_len]
     use_dates = dates[:min_len]
 
-    df = pd.DataFrame({"date": use_dates, "equity": use_equity})
-    df["year"] = df["date"].dt.year
-
     yearly_returns = {}
 
-    for year in df["year"].unique():
-        year_data = df[df["year"] == year]
-        if len(year_data) > 1:
-            year_return = Percentage(
-                Decimal((year_data["equity"].iloc[-1] / year_data["equity"].iloc[0] - 1) * 100)
-            )
-            yearly_returns[int(year)] = year_return
+    # Convert dates to years
+    years = [d.year for d in use_dates]
+    unique_years = sorted(set(years))
+
+    for year in unique_years:
+        year_indices = [i for i, y in enumerate(years) if y == year]
+        if len(year_indices) > 1:
+            start_idx = year_indices[0]
+            end_idx = year_indices[-1]
+            start_equity = use_equity[start_idx]
+            end_equity = use_equity[end_idx]
+            year_return = Percentage(Decimal((end_equity / start_equity - 1) * 100))
+            yearly_returns[year] = year_return
+
+    return yearly_returns
 
     return yearly_returns
 
@@ -180,16 +187,16 @@ def calculate_yearly_returns(
 def _empty_metrics() -> PerformanceMetrics:
     """Create empty metrics for edge cases."""
     return PerformanceMetrics(
-        total_return=Percentage(Decimal("0")),
-        cagr=Percentage(Decimal("0")),
-        mdd=Percentage(Decimal("0")),
-        sortino_ratio=Decimal("0"),
-        win_rate=Percentage(Decimal("0")),
-        profit_factor=Decimal("0"),
+        total_return=Percentage(ZERO),
+        cagr=Percentage(ZERO),
+        mdd=Percentage(ZERO),
+        sortino_ratio=ZERO,
+        win_rate=Percentage(ZERO),
+        profit_factor=ZERO,
         num_trades=0,
-        avg_win=Amount(Decimal("0")),
-        avg_loss=Amount(Decimal("0")),
-        final_equity=Amount(Decimal("0")),
+        avg_win=Amount(ZERO),
+        avg_loss=Amount(ZERO),
+        final_equity=Amount(ZERO),
     )
 
 

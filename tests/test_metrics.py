@@ -1,6 +1,6 @@
 """Test performance metrics calculation."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
@@ -35,14 +35,14 @@ def sample_equity_curve() -> list[Decimal]:
 @pytest.fixture
 def sample_dates() -> list[datetime]:
     """Provide sample dates."""
-    base_date = datetime(2024, 1, 1, tzinfo=UTC)
+    base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
     return [base_date + timedelta(days=i * 30) for i in range(10)]
 
 
 @pytest.fixture
 def sample_trades() -> list[Trade]:
     """Provide sample trades."""
-    base_date = datetime(2024, 1, 1, tzinfo=UTC)
+    base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
     return [
         Trade(
             symbol="BTC",
@@ -190,7 +190,7 @@ class TestCalculatePerformanceMetrics:
         sample_dates: list[datetime],
     ) -> None:
         """Test with all winning trades."""
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         winning_trades = [
             Trade(
                 symbol="BTC",
@@ -231,7 +231,7 @@ class TestCalculatePerformanceMetrics:
         sample_dates: list[datetime],
     ) -> None:
         """Test with all losing trades."""
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         losing_trades = [
             Trade(
                 symbol="BTC",
@@ -264,11 +264,11 @@ class TestCalculateYearlyReturns:
 
         equity = np.array([10000, 10500, 11000, 11500, 12000])
         dates = [
-            datetime(2024, 1, 1, tzinfo=UTC),
-            datetime(2024, 3, 1, tzinfo=UTC),
-            datetime(2024, 6, 1, tzinfo=UTC),
-            datetime(2024, 9, 1, tzinfo=UTC),
-            datetime(2024, 12, 1, tzinfo=UTC),
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+            datetime(2024, 3, 1, tzinfo=timezone.utc),
+            datetime(2024, 6, 1, tzinfo=timezone.utc),
+            datetime(2024, 9, 1, tzinfo=timezone.utc),
+            datetime(2024, 12, 1, tzinfo=timezone.utc),
         ]
 
         yearly_returns = calculate_yearly_returns(equity, dates)
@@ -282,11 +282,11 @@ class TestCalculateYearlyReturns:
 
         equity = np.array([10000, 11000, 12000, 11500, 12500])
         dates = [
-            datetime(2023, 1, 1, tzinfo=UTC),
-            datetime(2023, 12, 1, tzinfo=UTC),
-            datetime(2024, 1, 1, tzinfo=UTC),
-            datetime(2024, 6, 1, tzinfo=UTC),
-            datetime(2024, 12, 1, tzinfo=UTC),
+            datetime(2023, 1, 1, tzinfo=timezone.utc),
+            datetime(2023, 12, 1, tzinfo=timezone.utc),
+            datetime(2024, 1, 1, tzinfo=timezone.utc),
+            datetime(2024, 6, 1, tzinfo=timezone.utc),
+            datetime(2024, 12, 1, tzinfo=timezone.utc),
         ]
 
         yearly_returns = calculate_yearly_returns(equity, dates)

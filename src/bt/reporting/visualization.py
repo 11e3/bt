@@ -7,33 +7,36 @@ Generates charts for backtest results including:
 - Market regime analysis
 """
 
+from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Any
 
+import matplotlib.figure as mfigure
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
+from matplotlib.axes import Axes
+from matplotlib.dates import date2num
 
-from bt.logging import get_logger
-
-if TYPE_CHECKING:
-    from datetime import datetime
-
-    from bt.domain.models import PerformanceMetrics
+from bt.domain.models import PerformanceMetrics
+from bt.utils.chart_style import (
+    COLOR_PRIMARY,
+    COLORS,
+    FIGURE_HEIGHT,
+    FIGURE_WIDTH,
+    FONT_SIZE_LARGE,
+    FONT_SIZE_MEDIUM,
+    GRID_ALPHA,
+    LINE_WIDTH_THIN,
+)
+from bt.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
 # Style configuration
 plt.style.use("seaborn-v0_8-whitegrid")
-COLORS = {
-    "equity": "#2E86AB",
-    "drawdown": "#E94F37",
-    "positive": "#2ECC71",
-    "negative": "#E74C3C",
-    "neutral": "#95A5A6",
-    "benchmark": "#7F8C8D",
-}
 
 
 def plot_equity_curve(
@@ -42,7 +45,7 @@ def plot_equity_curve(
     title: str = "Equity Curve",
     save_path: Path | None = None,
     show: bool = True,
-) -> plt.Figure:
+) -> mfigure.Figure:
     """Plot equity curve with drawdown overlay.
 
     Args:
@@ -67,20 +70,21 @@ def plot_equity_curve(
     drawdown = (equity - cummax) / cummax * 100
 
     fig, (ax1, ax2) = plt.subplots(
-        2, 1, figsize=(14, 8), height_ratios=[3, 1], sharex=True
+        2, 1, figsize=(FIGURE_WIDTH, FIGURE_HEIGHT), height_ratios=[3, 1], sharex=True
     )
 
-
     # Equity curve (log scale)
-    ax1.semilogy(dates, equity, color=COLORS["equity"], linewidth=1.5, label="Equity")
-    ax1.fill_between(dates, equity, alpha=0.3, color=COLORS["equity"])
-    ax1.set_ylabel("Equity (KRW, log scale)", fontsize=11)
-    ax1.set_title(title, fontsize=14, fontweight="bold")
+    ax1.semilogy(
+        dates, equity, color=COLOR_PRIMARY, linewidth=LINE_WIDTH_THIN * 1.5, label="Equity"
+    )
+    ax1.fill_between(dates, equity, alpha=0.3, color=COLOR_PRIMARY)
+    ax1.set_ylabel("Equity (KRW, log scale)", fontsize=FONT_SIZE_MEDIUM + 1)
+    ax1.set_title(title, fontsize=FONT_SIZE_LARGE + 2, fontweight="bold")
     ax1.legend(loc="upper left")
-    ax1.grid(True, alpha=0.3)
+    ax1.grid(True, alpha=GRID_ALPHA)
 
     # Format y-axis with comma separator
-    ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:,.0f}"))
+    ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x:,.0f}"))
 
     # Drawdown
     ax2.fill_between(dates, drawdown, 0, color=COLORS["drawdown"], alpha=0.7)
@@ -119,7 +123,7 @@ def plot_yearly_returns(
     title: str = "Yearly Returns",
     save_path: Path | None = None,
     show: bool = True,
-) -> plt.Figure:
+) -> mfigure.Figure:
     """Plot yearly returns as bar chart.
 
     Args:
@@ -165,7 +169,7 @@ def plot_yearly_returns(
     # Add average line
     avg_return = np.mean(returns)
     ax.axhline(
-        y=avg_return,
+        y=float(avg_return),
         color=COLORS["benchmark"],
         linestyle="--",
         linewidth=1.5,
@@ -186,11 +190,11 @@ def plot_yearly_returns(
 
 
 def plot_wfa_results(
-    window_results: list[dict],
+    window_results: list[dict[str, Any]],
     title: str = "Walk Forward Analysis Results",
     save_path: Path | None = None,
     show: bool = True,
-) -> plt.Figure:
+) -> mfigure.Figure:
     """Plot WFA window-by-window performance.
 
     Args:
@@ -207,7 +211,7 @@ def plot_wfa_results(
     windows = list(range(1, n_windows + 1))
 
     # Handle both flat and nested result structures
-    def get_metric(r: dict, key: str) -> float:
+    def get_metric(r: dict[str, Any], key: str) -> float:
         if "results" in r:
             return r["results"].get(key, 0)
         return r.get(key, 0)
@@ -277,7 +281,7 @@ def plot_market_regime_analysis(
     title: str = "Market Regime Analysis",
     save_path: Path | None = None,
     show: bool = True,
-) -> plt.Figure:
+) -> mfigure.Figure:
     """Plot equity curve with market regime highlighting.
 
     If regime_labels not provided, auto-detect based on returns.
@@ -313,9 +317,9 @@ def plot_market_regime_analysis(
 
     # Add regime background colors
     regime_colors = {
-        "bull": (*plt.cm.Greens(0.3)[:3], 0.3),
-        "bear": (*plt.cm.Reds(0.3)[:3], 0.3),
-        "sideways": (*plt.cm.Greys(0.3)[:3], 0.2),
+        "bull": (0.3, 0.7, 0.3, 0.3),  # Green
+        "bear": (0.8, 0.3, 0.3, 0.3),  # Red
+        "sideways": (0.5, 0.5, 0.5, 0.2),  # Gray
     }
 
     _add_regime_background(ax1, dates, regime_labels, regime_colors)
@@ -323,7 +327,7 @@ def plot_market_regime_analysis(
     ax1.set_ylabel("Equity (KRW, log scale)", fontsize=11)
     ax1.set_title(title, fontsize=14, fontweight="bold")
     ax1.grid(True, alpha=0.3)
-    ax1.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:,.0f}"))
+    ax1.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x:,.0f}"))
 
     # Regime performance summary
     regime_stats = _calculate_regime_stats(equity, regime_labels)
@@ -341,7 +345,7 @@ def plot_market_regime_analysis(
     return fig
 
 
-def _detect_market_regimes(returns: np.ndarray, window: int = 60) -> list[str]:
+def _detect_market_regimes(returns: np.ndarray[Any, Any], window: int = 60) -> list[str]:
     """Auto-detect market regimes based on rolling returns.
 
     Args:
@@ -370,10 +374,10 @@ def _detect_market_regimes(returns: np.ndarray, window: int = 60) -> list[str]:
 
 
 def _add_regime_background(
-    ax: plt.Axes,
+    ax: Axes,
     dates: list[datetime],
     regimes: list[str],
-    colors: dict[str, tuple],
+    colors: dict[str, tuple[float, float, float, float]],
 ) -> None:
     """Add background colors for different regimes."""
     if not regimes:
@@ -385,8 +389,8 @@ def _add_regime_background(
     for i, regime in enumerate(regimes[1:], 1):
         if regime != current_regime:
             ax.axvspan(
-                dates[start_idx],
-                dates[i - 1],
+                float(date2num(dates[start_idx])),
+                float(date2num(dates[i - 1])),
                 facecolor=colors.get(current_regime, colors["sideways"]),
                 alpha=0.3,
             )
@@ -395,14 +399,16 @@ def _add_regime_background(
 
     # Last segment
     ax.axvspan(
-        dates[start_idx],
-        dates[-1],
+        float(date2num(dates[start_idx])),
+        float(date2num(dates[-1])),
         facecolor=colors.get(current_regime, colors["sideways"]),
         alpha=0.3,
     )
 
 
-def _calculate_regime_stats(equity: np.ndarray, regimes: list[str]) -> dict:
+def _calculate_regime_stats(
+    equity: np.ndarray[Any, Any], regimes: list[str]
+) -> dict[str, dict[str, float]]:
     """Calculate performance statistics per regime."""
     df = pd.DataFrame({"equity": equity, "regime": regimes})
     df["returns"] = df["equity"].pct_change().fillna(0)
@@ -425,7 +431,7 @@ def _calculate_regime_stats(equity: np.ndarray, regimes: list[str]) -> dict:
     return stats
 
 
-def _plot_regime_summary(ax: plt.Axes, stats: dict) -> None:
+def _plot_regime_summary(ax: Axes, stats: dict[str, dict[str, float]]) -> None:
     """Plot regime performance summary as horizontal bar chart."""
     regimes = ["bull", "bear", "sideways"]
     regime_names = ["Bull", "Bear", "Sideways"]
@@ -463,7 +469,7 @@ def _plot_regime_summary(ax: plt.Axes, stats: dict) -> None:
 
 def save_all_charts(
     metrics: PerformanceMetrics,
-    wfa_results: list[dict] | None = None,
+    wfa_results: list[dict[str, Any]] | None = None,
     output_dir: Path | None = None,
     prefix: str = "backtest",
 ) -> list[Path]:
@@ -498,8 +504,12 @@ def save_all_charts(
     # Yearly returns
     if metrics.yearly_returns:
         yearly_path = output_dir / f"{prefix}_yearly_returns.png"
+        # Convert Percentage to Decimal for plotting
+        yearly_returns_decimal = {
+            year: Decimal(str(float(pct))) for year, pct in metrics.yearly_returns.items()
+        }
         plot_yearly_returns(
-            metrics.yearly_returns,
+            yearly_returns_decimal,
             title="VBO Strategy - Yearly Returns",
             save_path=yearly_path,
             show=False,

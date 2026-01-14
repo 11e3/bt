@@ -1,6 +1,6 @@
 """Test allocation strategies."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pandas as pd
@@ -31,7 +31,7 @@ def sample_engine() -> BacktestEngine:
     engine = BacktestEngine(config=config)
 
     # Add sample data
-    base_date = datetime(2024, 1, 1, tzinfo=UTC)
+    base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
     dates = [base_date + timedelta(days=i) for i in range(30)]
 
     df = pd.DataFrame(
@@ -116,7 +116,7 @@ class TestEqualWeightAllocation:
         )
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(20)]
 
         df_btc = pd.DataFrame(
@@ -194,7 +194,7 @@ class TestCashPartitionAllocation:
             "BTC",
             Price(Decimal("50000")),
             Quantity(Decimal("0.1")),
-            datetime.now(tz=UTC),
+            datetime.now(tz=timezone.utc),
         )
 
         quantity = cash_partition_allocation(sample_engine, "ETH", price, pool)
@@ -214,7 +214,7 @@ class TestCashPartitionAllocation:
             "BTC",
             Price(Decimal("50000")),
             Quantity(Decimal("0.1")),
-            datetime.now(tz=UTC),
+            datetime.now(tz=timezone.utc),
         )
 
         quantity = cash_partition_allocation(sample_engine, "BTC", price, pool)

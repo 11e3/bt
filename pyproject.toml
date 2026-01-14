@@ -7,7 +7,7 @@ name = "bt"
 version = "0.1.0"
 description = "Event-driven cryptocurrency backtesting framework"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.10,<3.12"
 license = {text = "MIT"}
 authors = [
     {name = "BT Team"}
@@ -16,20 +16,17 @@ keywords = ["backtesting", "cryptocurrency", "trading", "strategy"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Financial and Insurance Industry",
-    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.10",
     "Topic :: Office/Business :: Financial :: Investment",
 ]
 
 dependencies = [
-    "pandas>=2.2.0",
-    "numpy>=2.0.0",
-    "pyarrow>=15.0.0",
-    "pyupbit>=0.2.34",
-    "pydantic>=2.9.0",
-    "pydantic-settings>=2.6.0",
-    "matplotlib>=3.8.0",
-    "ipykernel>=6.30.0",
-    "pip>=23.0.0",
+    "pandas>=2.0.0",
+    "matplotlib>=3.5.0",
+    "numpy>=1.21.0",
+    "pydantic>=2.0.0",
+    "pandas-stubs>=2.3.3",
+    "matplotlib-stubs>=0.3.11",
 ]
 
 [project.optional-dependencies]
@@ -39,7 +36,9 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "ruff>=0.8.0",
     "mypy>=1.13.0",
-    "pandas-stubs>=2.2.0",
+    "pandas-stubs>=2.3.3",
+    "matplotlib-stubs>=0.3.11",
+    "types-PyYAML>=6.0.1",
 ]
 
 [project.scripts]
@@ -49,7 +48,7 @@ bt = "bt.cli:main"
 packages = ["src/bt"]
 
 [tool.ruff]
-target-version = "py314"
+target-version = "py310"
 line-length = 100
 indent-width = 4
 exclude = ["notebooks/", "*.ipynb", ".venv/", "venv/"]
@@ -86,7 +85,7 @@ indent-style = "space"
 line-ending = "auto"
 
 [tool.mypy]
-python_version = "3.14"
+python_version = "3.10"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -96,6 +95,7 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
+plugins = []
 check_untyped_defs = true
 strict_equality = true
 show_error_codes = true
@@ -142,3 +142,18 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "@abstractmethod",
 ]
+
+# Plugin entry points
+[project.entry-points."bt.plugins"]
+mean_reversion = "bt.plugins.examples.mean_reversion_plugin:MeanReversionStrategyPlugin"
+
+[project.entry-points."bt.strategies"]
+volatility_breakout = "bt.strategies.implementations:VolatilityBreakoutStrategy"
+momentum = "bt.strategies.implementations:MomentumStrategy"
+buy_and_hold = "bt.strategies.implementations:BuyAndHoldStrategy"
+
+[project.entry-points."bt.data_providers"]
+in_memory = "bt.engine.data_provider:InMemoryDataProvider"
+
+[project.entry-points."bt.reporters"]
+html = "bt.reporting.charts.equity_curves:EquityCurveChart"

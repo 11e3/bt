@@ -1,6 +1,6 @@
 """Test CPCV (Combinatorially Purged Cross-Validation)."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pandas as pd
@@ -12,7 +12,7 @@ from bt.validation.cpcv import CombinatorialPurgedCV
 @pytest.fixture
 def sample_ohlcv_df() -> pd.DataFrame:
     """Provide sample OHLCV DataFrame."""
-    base_date = datetime(2024, 1, 1, tzinfo=UTC)
+    base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
     dates = [base_date + timedelta(days=i) for i in range(100)]
 
     return pd.DataFrame(

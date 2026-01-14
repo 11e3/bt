@@ -1,6 +1,6 @@
 """Test trading conditions."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pandas as pd
@@ -35,7 +35,7 @@ def sample_engine() -> BacktestEngine:
     engine = BacktestEngine(config=config)
 
     # Create uptrend data
-    base_date = datetime(2024, 1, 1, tzinfo=UTC)
+    base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
     dates = [base_date + timedelta(days=i) for i in range(30)]
 
     df = pd.DataFrame(
@@ -69,7 +69,7 @@ class TestCommonConditions:
             "BTC",
             Price(Decimal("50000")),
             Quantity(Decimal("0.1")),
-            datetime.now(tz=UTC),
+            datetime.now(tz=timezone.utc),
         )
 
         result = no_open_position(sample_engine, "BTC")
@@ -81,7 +81,7 @@ class TestCommonConditions:
             "BTC",
             Price(Decimal("50000")),
             Quantity(Decimal("0.1")),
-            datetime.now(tz=UTC),
+            datetime.now(tz=timezone.utc),
         )
 
         result = has_open_position(sample_engine, "BTC")
@@ -102,7 +102,7 @@ class TestCommonConditions:
             "BTC",
             Price(Decimal("50000")),
             Quantity(Decimal("0.1")),
-            datetime.now(tz=UTC),
+            datetime.now(tz=timezone.utc),
         )
 
         result = never(sample_engine, "BTC")
@@ -130,7 +130,7 @@ class TestTrendConditions:
         config = BacktestConfig(lookback=10)
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(5)]
 
         df = pd.DataFrame(
@@ -168,7 +168,7 @@ class TestTrendConditions:
         config = BacktestConfig(lookback=5, multiplier=2)
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(20)]
 
         # Downtrend data
@@ -206,7 +206,7 @@ class TestVBOConditions:
         config = BacktestConfig(lookback=5, multiplier=2)
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(20)]
 
         # Create data with clear breakout opportunity
@@ -240,7 +240,7 @@ class TestVBOConditions:
         config = BacktestConfig(lookback=5, multiplier=2)
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(20)]
 
         # Data with decreasing noise (small range)
@@ -274,7 +274,7 @@ class TestVBOConditions:
         config = BacktestConfig(lookback=5, multiplier=2)
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(5)]
 
         df = pd.DataFrame(

@@ -9,15 +9,13 @@ develop-eggs/
 dist/
 downloads/
 eggs/
-.eggs/
 lib/
 lib64/
 parts/
 sdist/
 var/
 wheels/
-*.egg-info/
-.installed.cfg
+*.egg-info
 *.egg
 MANIFEST
 
@@ -26,57 +24,89 @@ MANIFEST
 venv/
 ENV/
 env/
+venv310/
+venv310-uv/
 
-# PyCharm
-.idea/
-
-# VS Code
+# IDE
 .vscode/
+.idea/
 *.code-workspace
+*.swp
+*.swo
 
 # Jupyter Notebook
-.ipynb_checkpoints
+.ipynb_checkpoints/
 
-# pytest
+# Testing & Coverage
 .pytest_cache/
 .coverage
 htmlcov/
-.tox/
-.hypothesis/
-
-# mypy
 .mypy_cache/
 .dmypy.json
-dmypy.json
-
-# ruff
 .ruff_cache/
+.pytest_cache/
 
-# Environment
+# Environment files
 .env
 .env.local
-
-# Data files
-data/
-*.parquet
-*.csv
-*.h5
-*.hdf5
+.env.*.local
 
 # Logs
 *.log
 logs/
 
-# OS
+# Build artifacts
+*.whl
+*.egg-info/
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.bak
+temp/
+*.temp
+
+# OS specific
 .DS_Store
 Thumbs.db
-*.swp
-*.swo
-*~
 
-# Backups
-*.bak
-*.tmp
+# Data files (keep raw data, exclude processed)
+data/processed/
+data/results/
+data/cache/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+data/
+output/
+
+# Monitoring and profiling
+*.prof
+*.profile
+
+# Security scan reports
+bandit-report.json
+security-scan.json
+
+# Documentation build
+docs/_build/
+docs/build/
+
+# AI/ML model files
+*.model
+*.pkl
+*.joblib
+
+# Git conflict files
+*.orig
+*.rej
+
+# Editor specific
+.vscode/settings.json
+.idea/workspace.xml
 
 # Build artifacts
 *.whl

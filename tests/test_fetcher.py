@@ -1,6 +1,6 @@
 """Test DataFetcher module."""
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
@@ -136,13 +136,13 @@ class TestFetchOhlcv:
             },
             # [수정 전] tz_localize 없음 (Naive) -> 에러 발생
             # index=pd.to_datetime(["2024-01-01"]),
-            # [수정 후] UTC 시간대 적용 (Aware) -> start_date와 비교 가능
-            index=pd.to_datetime(["2024-01-01"]).tz_localize("UTC"),
+            # [수정 후] timezone.utc 시간대 적용 (Aware) -> start_date와 비교 가능
+            index=pd.to_datetime(["2024-01-01"]).tz_localize("timezone.utc"),
         )
         mock_get_ohlcv.return_value = mock_df
 
-        start = datetime(2024, 1, 1, tzinfo=UTC)
-        end = datetime(2024, 1, 5, tzinfo=UTC)
+        start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+        end = datetime(2024, 1, 5, tzinfo=timezone.utc)
 
         result = fetcher.fetch_ohlcv("BTC", "day", start_date=start, end_date=end)
 
@@ -251,7 +251,9 @@ class TestFetchAndUpdate:
                 "volume": [1000, 1100, 1200],
             },
             # [권장] 타임존 명시 (이전 수정사항 반영)
-            index=pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"]).tz_localize("UTC"),
+            index=pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"]).tz_localize(
+                "timezone.utc"
+            ),
         )
 
         # [수정] return_value 대신 side_effect 사용
@@ -283,8 +285,8 @@ class TestFetchAndUpdate:
                 "close": [107, 108],
                 "volume": [1500, 1600],
             },
-            # [중요] 저장된 데이터(UTC)와 비교하기 위해 UTC 설정 필수
-            index=pd.to_datetime(["2024-01-06", "2024-01-07"]).tz_localize("UTC"),
+            # [중요] 저장된 데이터(timezone.utc)와 비교하기 위해 timezone.utc 설정 필수
+            index=pd.to_datetime(["2024-01-06", "2024-01-07"]).tz_localize("timezone.utc"),
         )
 
         # [수정] 첫 번째는 데이터, 두 번째는 None을 반환하여 루프 종료
@@ -332,8 +334,8 @@ class TestFetchMultipleSymbols:
                 "close": [102],
                 "volume": [1000],
             },
-            # [중요] UTC 설정
-            index=pd.to_datetime(["2024-01-01"]).tz_localize("UTC"),
+            # [중요] timezone.utc 설정
+            index=pd.to_datetime(["2024-01-01"]).tz_localize("timezone.utc"),
         )
 
         # [수정] 2개 심볼 * 2개 인터벌 = 총 4회 fetch 작업

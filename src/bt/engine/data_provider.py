@@ -1,151 +1,108 @@
-"""Data provider for market data access during backtesting.
-
-Manages market data and provides bar-level access with proper indexing.
-"""
+"""Data provider implementation for backtesting engine."""
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import Any
 
-from bt.logging import get_logger
+import pandas as pd
 
-if TYPE_CHECKING:
-    import pandas as pd
-
-    pass
+from bt.interfaces.core import DataProvider
+from bt.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
 
-class DataProvider:
-    """Provides market data access for backtesting.
-
-    Manages:
-    - Data loading and storage
-    - Current bar tracking
-    - Historical data retrieval
-    - Data synchronization across symbols
-    """
+class InMemoryDataProvider(DataProvider):
+    """In-memory data provider implementation."""
 
     def __init__(self) -> None:
         """Initialize data provider."""
         self._data: dict[str, pd.DataFrame] = {}
         self._current_bar: dict[str, int] = {}
-
-        logger.debug("DataProvider initialized")
+        self._cache: dict[str, Any] = {}
 
     def load_data(self, symbol: str, df: pd.DataFrame) -> None:
-        """Load market data for a symbol.
-
-        Args:
-            symbol: Trading symbol
-            df: DataFrame with OHLCV data and datetime column
-        """
-        # Validate required columns
-        required_cols = ["datetime", "open", "high", "low", "close", "volume"]
-        missing_cols = [col for col in required_cols if col not in df.columns]
-        if missing_cols:
-            raise ValueError(f"Missing required columns: {missing_cols}")
-
-        # Sort and reset index
-        df = df.copy()
-        df = df.sort_values("datetime").reset_index(drop=True)
-
+        """Load data for a symbol."""
         self._data[symbol] = df
         self._current_bar[symbol] = 0
 
-        logger.info(
-            "Data loaded",
-            extra={
-                "symbol": symbol,
-                "rows": len(df),
-                "start": df["datetime"].min().isoformat(),
-                "end": df["datetime"].max().isoformat(),
-            },
-        )
-
     def get_bar(self, symbol: str, offset: int = 0) -> pd.Series | None:
-        """Get bar data at current position + offset.
-
-        Args:
-            symbol: Trading symbol
-            offset: Offset from current bar (0 = current, -1 = previous)
-
-        Returns:
-            Bar data as Series, or None if out of bounds
-        """
-        if symbol not in self._data:
+        """Get current bar data for a symbol."""
+        if symbol not in self._data or self._current_bar[symbol] + offset >= len(
+            self._data[symbol]
+        ):
             return None
 
-        idx = self._current_bar[symbol] + offset
-        if idx < 0 or idx >= len(self._data[symbol]):
-            return None
-
-        return self._data[symbol].iloc[idx]
+        return self._data[symbol].iloc[self._current_bar[symbol] + offset]
 
     def get_bars(self, symbol: str, count: int) -> pd.DataFrame | None:
-        """Get multiple bars ending at current position.
-
-        Args:
-            symbol: Trading symbol
-            count: Number of bars to retrieve
-
-        Returns:
-            DataFrame with bar data, or None if insufficient data
-        """
+        """Get multiple bars for a symbol."""
         if symbol not in self._data:
             return None
 
+        start_idx = max(0, self._current_bar[symbol] - count + 1)
         end_idx = self._current_bar[symbol] + 1
-        start_idx = max(0, end_idx - count)
-
-        if start_idx >= end_idx:
-            return None
-
         return self._data[symbol].iloc[start_idx:end_idx]
 
-    def has_more_data(self) -> bool:
-        """Check if there is more data to process.
+    def get_current_datetime(self, symbol: str) -> datetime | None:
+        """Get current datetime for a symbol."""
+        if symbol not in self._data or self._current_bar[symbol] >= len(self._data[symbol]):
+            return None
 
-        Returns:
-            True if any symbol has unprocessed bars
-        """
-        return any(self._current_bar[symbol] < len(self._data[symbol]) - 1 for symbol in self._data)
+        return pd.to_datetime(
+            self._data[symbol].iloc[self._current_bar[symbol]]["datetime"]
+        ).to_pydatetime()  # type: ignore[no-any-return]
 
     def next_bar(self) -> None:
-        """Advance to next bar for all symbols."""
+        """Move to next bar for all symbols."""
         for symbol in self._data:
-            if self._current_bar[symbol] < len(self._data[symbol]) - 1:
-                self._current_bar[symbol] += 1
+            self._current_bar[symbol] += 1
+
+    def has_more_data(self) -> bool:
+        """Check if there is more data available."""
+        return any(
+            self._current_bar.get(symbol, 0) < len(self._data.get(symbol, pd.DataFrame()))
+            for symbol in self._data
+        )
 
     def set_current_bar(self, symbol: str, index: int) -> None:
-        """Set current bar position for a symbol.
+        """Set current bar index."""
+        if symbol in self._data:
+            self._current_bar[symbol] = index
+
+    def get_prices_batch(self, symbols: list[str]) -> dict[str, float]:
+        """Get current close prices for multiple symbols in one operation.
 
         Args:
-            symbol: Trading symbol
-            index: Bar index to set
-        """
-        if symbol not in self._data:
-            raise ValueError(f"Symbol {symbol} not loaded")
-
-        if index < 0 or index >= len(self._data[symbol]):
-            raise ValueError(f"Index {index} out of bounds for {symbol}")
-
-        self._current_bar[symbol] = index
-
-    def get_current_datetime(self, symbol: str) -> datetime | None:
-        """Get datetime of current bar.
-
-        Args:
-            symbol: Trading symbol
+            symbols: List of symbols to get prices for
 
         Returns:
-            Datetime of current bar, or None if no data
+            Dictionary mapping symbols to their current close prices
         """
-        bar = self.get_bar(symbol)
-        if bar is None:
-            return None
-        dt = bar["datetime"]
-        return dt if isinstance(dt, datetime) else dt.to_pydatetime()
+        prices = {}
+        for symbol in symbols:
+            if symbol in self._data and self._current_bar[symbol] < len(self._data[symbol]):
+                close_price = self._data[symbol].iloc[self._current_bar[symbol]]["close"]
+                prices[symbol] = float(close_price)
+        return prices
+
+    def get_current_datetime_batch(self, symbols: list[str]) -> datetime | None:
+        """Get current datetime for symbols (returns first non-None datetime).
+
+        Args:
+            symbols: List of symbols to check
+
+        Returns:
+            Current datetime or None if no data available
+        """
+        for symbol in symbols:
+            if symbol in self._data and self._current_bar[symbol] < len(self._data[symbol]):
+                dt = self._data[symbol].iloc[self._current_bar[symbol]]["datetime"]
+                if isinstance(dt, datetime):
+                    return dt
+                if hasattr(dt, "to_pydatetime"):
+                    return dt.to_pydatetime()
+                return pd.to_datetime(dt).to_pydatetime()
+        return None
 
     @property
     def symbols(self) -> list[str]:

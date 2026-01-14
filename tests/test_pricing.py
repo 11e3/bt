@@ -1,6 +1,6 @@
 """Test price calculation functions."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pandas as pd
@@ -29,7 +29,7 @@ def sample_engine() -> BacktestEngine:
     engine = BacktestEngine(config=config)
 
     # Create sample data
-    base_date = datetime(2024, 1, 1, tzinfo=UTC)
+    base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
     dates = [base_date + timedelta(days=i) for i in range(30)]
 
     df = pd.DataFrame(
@@ -87,7 +87,7 @@ class TestGetCurrentClose:
         )
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(20)]
 
         df_btc = pd.DataFrame(
@@ -160,7 +160,7 @@ class TestGetVBOBuyPrice:
         config = BacktestConfig(lookback=5, multiplier=2)
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         # Only 3 bars of data
         dates = [base_date + timedelta(days=i) for i in range(3)]
 
@@ -201,7 +201,7 @@ class TestGetVBOBuyPrice:
         )
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(20)]
 
         df = pd.DataFrame(
@@ -241,7 +241,7 @@ class TestGetVBOBuyPrice:
         )
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(10)]
 
         # All bars have same OHLC (no range)
@@ -275,7 +275,7 @@ class TestGetVBOBuyPrice:
         )
         engine = BacktestEngine(config=config)
 
-        base_date = datetime(2024, 1, 1, tzinfo=UTC)
+        base_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
         dates = [base_date + timedelta(days=i) for i in range(10)]
 
         # Highly volatile data with large ranges

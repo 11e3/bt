@@ -12,15 +12,17 @@ if TYPE_CHECKING:
     from bt.engine.backtest import BacktestEngine
 
 
-def get_current_close(engine: BacktestEngine, symbol: str) -> Price:
+def get_current_close(engine: "BacktestEngine", symbol: str) -> Price:
     """Returns the current bar's close price."""
+    if engine.data_provider is None:
+        return Price(Decimal("0"))
     bar = engine.data_provider.get_bar(symbol)
     if bar is None:
         return Price(Decimal("0"))
     return Price(Decimal(str(bar["close"])))
 
 
-def get_vbo_buy_price(engine: BacktestEngine, symbol: str) -> Price:
+def get_vbo_buy_price(engine: "BacktestEngine", symbol: str) -> Price:
     """Calculate VBO breakout buy price.
 
     Formula: Open + (Prev Range * Avg Noise)
