@@ -21,7 +21,7 @@ repos:
         args: [--exclude=src/bt/core/simple_strategies.py]
       # Run the linter
       - id: ruff
-        args: [--fix, --unsafe-fixes, --exclude=src/bt/core/simple_strategies.py, --ignore=N807,ARG002,F821,N818,B904,SIM105,E722,E721,PTH123,SIM102, --exit-zero]
+        args: [--fix, --unsafe-fixes, --exclude=src/bt/core/simple_strategies.py]
 
 #  - repo: https://github.com/pre-commit/mirrors-mypy
 #     rev: v1.19.1
@@ -42,16 +42,17 @@ repos:
 #         entry: python -m pytest --cov=src/bt --cov-report=term-missing
 #         language: python
 #         additional_dependencies: [pytest, numpy, pandas]
+#         env: PYTHONPATH=src
 #         pass_filenames: false
 #         always_run: false
 
-#   - repo: local
-#     hooks:
-#       - id: bandit-security
-#         name: bandit security scan
-#         entry: python -m bandit
-#         args: [-r, src/bt/, --exclude, src/bt/core/simple_strategies.py, -f, json, -o, .bandit-report.json]
-#         language: python
-#         additional_dependencies: [bandit]
-#         pass_filenames: false
-#         always_run: false
+  - repo: local
+    hooks:
+      - id: bandit-security
+        name: bandit security scan
+        entry: python -m bandit
+        args: [-r, src/bt/, --exclude, src/bt/core/simple_strategies.py, --exit-zero]
+        language: python
+        additional_dependencies: [bandit]
+        pass_filenames: false
+        always_run: false
