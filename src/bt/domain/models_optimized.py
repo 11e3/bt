@@ -9,7 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from bt.domain.types import Amount, Price, Quantity
+from bt.domain.types import Amount, Percentage, Price, Quantity
 
 
 @dataclass(slots=True)

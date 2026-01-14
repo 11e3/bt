@@ -260,7 +260,7 @@ class SimplePortfolio(Portfolio):
 
         return Amount(total)
 
-    def update_equity(self, date: datetime, prices: dict[str, Decimal]) -> None:
+    def update_equity(self, date: datetime, _prices: dict[str, Decimal]) -> None:
         """Update portfolio equity with current prices."""
         self._equity_curve.append(self.value)
         self._dates.append(date)

@@ -148,7 +148,7 @@ class PerformanceAnnotationChart(BaseChart):
         return fig
 
     def _add_performance_annotations(
-        self, ax, dates: list[datetime], values: list[float], perf_data: dict[str, Any]
+        self, ax, _dates: list[datetime], values: list[float], perf_data: dict[str, Any]
     ) -> None:
         """Add performance statistics as text annotations."""
         if not perf_data:

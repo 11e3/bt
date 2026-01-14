@@ -11,6 +11,7 @@ from bt.domain.types import Amount
 from bt.interfaces.protocols import (
     IDataProvider,
     ILogger,
+    IMetricsGenerator,
     IPortfolio,
     IStrategy,
 )
@@ -226,7 +227,7 @@ class OrderExecutor:
         self.logger = logger or container.get(ILogger)
 
     def execute_buy_order(
-        self, symbol: str, price: Amount, quantity: Amount, date: datetime, bar: any
+        self, symbol: str, price: Amount, quantity: Amount, date: datetime, _bar: any
     ) -> None:
         """Execute buy order with validation."""
         self.logger.debug(
@@ -263,7 +264,7 @@ class OrderExecutor:
             )
 
     def execute_sell_order(
-        self, symbol: str, price: Amount, quantity: Amount, date: datetime, bar: any
+        self, symbol: str, price: Amount, quantity: Amount, date: datetime, _bar: any
     ) -> None:
         """Execute sell order with validation."""
         self.logger.debug(

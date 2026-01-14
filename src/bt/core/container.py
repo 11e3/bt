@@ -277,7 +277,7 @@ def inject(interface: type, name: str | None = None):
     def decorator(cls):
         original_init = cls.__init__
 
-        def __init__(self, *args, **kwargs):
+        def _init_wrapper(self, *args, **kwargs):
             # Get container (first from kwargs, then from global)
             container = kwargs.pop("_container", None)
             if container is None:
@@ -293,7 +293,7 @@ def inject(interface: type, name: str | None = None):
             # Call original init
             original_init(self, *args, **kwargs)
 
-        cls.__init__ = __init__
+        cls.__init__ = _init_wrapper
         return cls
 
     return decorator
@@ -305,7 +305,7 @@ def auto_wire(interface_map: dict[type, str]):
     def decorator(cls):
         original_init = cls.__init__
 
-        def __init__(self, *args, **kwargs):
+        def _init_wrapper(self, *args, **kwargs):
             container = kwargs.pop("_container", None)
             if container is None:
                 container = get_default_container()
@@ -319,7 +319,7 @@ def auto_wire(interface_map: dict[type, str]):
 
             original_init(self, *args, **kwargs)
 
-        cls.__init__ = __init__
+        cls.__init__ = _init_wrapper
         return cls
 
     return decorator

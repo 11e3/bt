@@ -99,7 +99,7 @@ class InputValidator:
             logger.error(f"Validation failed for {data_type}: {e}")
             raise ValidationError(f"Invalid {data_type}: {str(e)}") from e
 
-    def _validate_dataframe(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    def _validate_dataframe(self, df: pd.DataFrame, **_kwargs) -> pd.DataFrame:
         """Validate pandas DataFrame."""
         if not isinstance(df, pd.DataFrame):
             raise ValidationError("Input must be a pandas DataFrame")
@@ -154,7 +154,7 @@ class InputValidator:
 
         return df
 
-    def _validate_dict(self, data: dict, **kwargs) -> dict:
+    def _validate_dict(self, data: dict, **_kwargs) -> dict:
         """Validate dictionary input."""
         if not isinstance(data, dict):
             raise ValidationError("Input must be a dictionary")
@@ -180,7 +180,7 @@ class InputValidator:
 
         return sanitized
 
-    def _validate_list(self, data: list, **kwargs) -> list:
+    def _validate_list(self, data: list, **_kwargs) -> list:
         """Validate list input."""
         if not isinstance(data, list):
             raise ValidationError("Input must be a list")
@@ -191,7 +191,7 @@ class InputValidator:
         # Sanitize each item
         return [self._sanitize_value(item) for item in data]
 
-    def _validate_string(self, data: str, **kwargs) -> str:
+    def _validate_string(self, data: str, **_kwargs) -> str:
         """Validate string input."""
         if not isinstance(data, str):
             raise ValidationError("Input must be a string")
@@ -202,7 +202,9 @@ class InputValidator:
         # Remove potentially dangerous characters
         return self._sanitize_string(data)
 
-    def _validate_numeric(self, data: int | float, field_name: str = None, **kwargs) -> int | float:
+    def _validate_numeric(
+        self, data: int | float, field_name: str = None, **_kwargs
+    ) -> int | float:
         """Validate numeric input."""
         if not isinstance(data, (int, float)):
             raise ValidationError("Input must be numeric")
@@ -216,7 +218,7 @@ class InputValidator:
 
         return data
 
-    def _validate_file_path(self, path: str | Path, **kwargs) -> Path:
+    def _validate_file_path(self, path: str | Path, **_kwargs) -> Path:
         """Validate file path for security."""
         path = Path(path).resolve()
 
@@ -239,7 +241,7 @@ class InputValidator:
 
         return path
 
-    def _validate_symbol(self, symbol: str, **kwargs) -> str:
+    def _validate_symbol(self, symbol: str, **_kwargs) -> str:
         """Validate trading symbol."""
         if not isinstance(symbol, str):
             raise ValidationError("Symbol must be a string")
@@ -253,7 +255,9 @@ class InputValidator:
 
         return symbol.upper()
 
-    def _validate_strategy_config(self, config: dict, strategy_name: str = None, **kwargs) -> dict:
+    def _validate_strategy_config(
+        self, config: dict, _strategy_name: str = None, **_kwargs
+    ) -> dict:
         """Validate strategy configuration parameters."""
         if not isinstance(config, dict):
             raise ValidationError("Strategy config must be a dictionary")
@@ -273,14 +277,14 @@ class InputValidator:
             if not isinstance(value, expected_type):
                 try:
                     # Try to convert
-                    if expected_type == int:
+                    if expected_type is int:
                         value = int(value)
-                    elif expected_type == float:
+                    elif expected_type is float:
                         value = float(value)
-                except (ValueError, TypeError):
+                except (ValueError, TypeError) as e:
                     raise ValidationError(
                         f"Parameter {param_name} must be {expected_type.__name__}"
-                    )
+                    ) from e
 
             # Range validation
             if "min" in param_spec and value < param_spec["min"]:
@@ -367,12 +371,15 @@ class SecureConfigManager:
         sensitive_keys = {"password", "secret", "key", "token", "api_key"}
         for key, value in config.items():
             key_lower = key.lower()
-            if any(sensitive in key_lower for sensitive in sensitive_keys):
-                if isinstance(value, str) and len(value) > 10:
-                    # Suggest using secrets manager
-                    logger.warning(
-                        f"Sensitive config key detected: {key}. Consider using secrets management."
-                    )
+            if (
+                any(sensitive in key_lower for sensitive in sensitive_keys)
+                and isinstance(value, str)
+                and len(value) > 10
+            ):
+                # Suggest using secrets manager
+                logger.warning(
+                    f"Sensitive config key detected: {key}. Consider using secrets management."
+                )
 
         return config
 
@@ -398,7 +405,7 @@ class SecurityScanner:
         """Scan files for security issues."""
         for file_path in path.rglob("*.py"):
             try:
-                with open(file_path, encoding="utf-8") as f:
+                with file_path.open(encoding="utf-8") as f:
                     content = f.read()
 
                 self._check_file_security(file_path, content)

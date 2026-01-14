@@ -155,7 +155,7 @@ class StrategyRegistry:
             return strategy
 
         except Exception as e:
-            raise StrategyError(f"Error creating strategy '{name}': {str(e)}", strategy=name)
+            raise StrategyError(f"Error creating strategy '{name}': {str(e)}", strategy=name) from e
 
     def list_strategies(self, category: str | None = None) -> list[StrategyInfo]:
         """List all registered strategies.
@@ -285,7 +285,7 @@ def register_strategy(
     def decorator(strategy_class: type[IStrategy]):
         original_init = strategy_class.__init__
 
-        def __init__(self, *args, **kwargs):
+        def _init_wrapper(self, *args, **kwargs):
             original_init(self, *args, **kwargs)
 
             # Register the strategy if not already registered
@@ -302,7 +302,7 @@ def register_strategy(
                     factory=factory,
                 )
 
-        strategy_class.__init__ = __init__
+        strategy_class.__init__ = _init_wrapper
         return strategy_class
 
     return decorator
@@ -366,7 +366,7 @@ def get_all_strategy_metadata() -> dict[str, dict[str, any]]:
             "tags": registration.info.tags,
             "class_name": registration.strategy_class.__name__,
             "has_factory": registration.factory is not None,
-            "dependencies": self._get_strategy_dependencies(registration.strategy_class),
+            "dependencies": _get_strategy_dependencies(registration.strategy_class),
         }
 
     return metadata

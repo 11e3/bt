@@ -285,7 +285,7 @@ class PerformanceProfiler:
 
             html += f"<li>Platform: {platform.platform()}</li>"
             html += f"<li>Python: {platform.python_version()}</li>"
-        except:
+        except Exception:
             pass
 
         html += f"<li>CPU profiling: {'Enabled' if self.config.profile_cpu else 'Disabled'}</li>"
@@ -339,7 +339,7 @@ class CodeQualityAnalyzer:
     def analyze_file(self, file_path: Path) -> dict[str, Any]:
         """Analyze code quality metrics for a file."""
         try:
-            with open(file_path, encoding="utf-8") as f:
+            with file_path.open(encoding="utf-8") as f:
                 content = f.read()
 
             return self._analyze_code(content, str(file_path))

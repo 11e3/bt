@@ -1,32 +1,13 @@
 """Concrete backtest engine implementing simplified interfaces."""
 
-from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any
 
-from .interfaces.core import (
-    BacktestEngine,
-    Configuration,
-    DataProvider,
-    Portfolio,
-    Strategy,
-    PerformanceMetrics,
-)
-
-from bt.domain.models import (
-    BacktestConfig,
-    Position,
-    Trade,
-)
-from bt.domain.types import (
-    Amount,
-    Fee,
-    Percentage,
-    Price,
-    Quantity,
-)
-
+from bt.domain.models import BacktestConfig
+from bt.domain.types import Amount, Fee, Percentage, Price
 from bt.utils.logging import get_logger
+
+from .interfaces.core import BacktestEngine, DataProvider, Portfolio, Strategy
 
 logger = get_logger(__name__)
 
@@ -39,7 +20,7 @@ class SimpleBacktestEngine(BacktestEngine):
         self._is_running = False
         self._current_bar_index = 0
 
-    def run(self, symbols: List[str], **kwargs) -> None:
+    def run(self, symbols: list[str], **kwargs) -> None:
         """Run backtest."""
         if not symbols:
             return
@@ -81,41 +62,41 @@ class SimpleBacktestEngine(BacktestEngine):
             self._current_bar_index += 1
 
         self._is_running = False
-        logger.info(f"Backtest completed")
+        logger.info("Backtest completed")
 
-    def _process_symbol_strategy(self, symbol: str, kwargs: Dict[str, Any]) -> None:
+    def _process_symbol_strategy(self, symbol: str, _kwargs: dict[str, Any]) -> None:
         """Process strategy for a single symbol."""
         # Get current position and conditions
         position = self.portfolio.get_position(symbol)
 
         # Sell logic (check first)
-        if position.is_open:
-            if all(self._evaluate_condition(self.strategy.get_sell_conditions(), symbol, "sell")):
-                current_price = self.strategy.get_sell_price_func()(self, symbol)
-                bar = self.data_provider.get_bar(symbol)
-                sell_date = self.data_provider.get_current_datetime(symbol)
+        if position.is_open and self._evaluate_condition(
+            self.strategy.get_sell_conditions(), symbol, "sell"
+        ):
+            current_price = self.strategy.get_sell_price_func()(self, symbol)
+            sell_date = self.data_provider.get_current_datetime(symbol)
 
-                if self.portfolio.sell(symbol, current_price, sell_date):
-                    logger.debug(f"Sell signal triggered for {symbol}")
+            if self.portfolio.sell(symbol, current_price, sell_date):
+                logger.debug(f"Sell signal triggered for {symbol}")
 
         # Buy logic (check if no position and all conditions met)
-        if not position.is_open:
-            if all(self._evaluate_condition(self.strategy.get_buy_conditions(), symbol, "buy")):
-                buy_price = self.strategy.get_buy_price_func()(self, symbol)
+        if not position.is_open and self._evaluate_condition(
+            self.strategy.get_buy_conditions(), symbol, "buy"
+        ):
+            buy_price = self.strategy.get_buy_price_func()(self, symbol)
 
-                # Calculate allocation
-                allocation_amount = self.strategy.get_allocation_func()(self, symbol, buy_price)
+            # Calculate allocation
+            allocation_amount = self.strategy.get_allocation_func()(self, symbol, buy_price)
 
-                if allocation_amount > 0:
-                    # Execute buy order
-                    bar = self.data_provider.get_bar(symbol)
-                    buy_date = self.data_provider.get_current_datetime(symbol)
+            if allocation_amount > 0:
+                # Execute buy order
+                buy_date = self.data_provider.get_current_datetime(symbol)
 
-                    # Use simplified portfolio buy method
-                    if self.portfolio.buy(symbol, buy_price, allocation_amount, buy_date):
-                        logger.debug(f"Buy signal for {symbol}")
+                # Use simplified portfolio buy method
+                if self.portfolio.buy(symbol, buy_price, allocation_amount, buy_date):
+                    logger.debug(f"Buy signal for {symbol}")
 
-    def _evaluate_condition(self, conditions: Dict[str, Any], symbol: str, context: str) -> bool:
+    def _evaluate_condition(self, conditions: dict[str, Any], symbol: str, context: str) -> bool:
         """Evaluate all conditions for a symbol."""
         for name, condition in conditions.items():
             try:
@@ -125,6 +106,7 @@ class SimpleBacktestEngine(BacktestEngine):
             except Exception as e:
                 logger.error(f"Error in condition {name}: {e}")
                 return False
+        return True
 
 
 class SimpleStrategy(Strategy):
@@ -146,11 +128,11 @@ class SimpleStrategy(Strategy):
         """Add sell condition."""
         self._sell_conditions[name] = condition
 
-    def set_buy_conditions(self, conditions: Dict[str, Any]) -> None:
+    def set_buy_conditions(self, conditions: dict[str, Any]) -> None:
         """Set all buy conditions."""
         self._buy_conditions = conditions.copy()
 
-    def set_sell_conditions(self, conditions: Dict[str, Any]) -> None:
+    def set_sell_conditions(self, conditions: dict[str, Any]) -> None:
         """Set all sell conditions."""
         self._sell_conditions = conditions.copy()
 
@@ -203,17 +185,17 @@ class MomentumStrategy(SimpleStrategy):
         self.top_n = top_n
         self.mom_lookback = mom_lookback
 
-    def get_buy_conditions(self) -> Dict[str, Any]:
+    def get_buy_conditions(self) -> dict[str, Any]:
         """Momentum buy conditions."""
         return {
-            "no_pos": lambda *args: True,  # No open position
+            "no_pos": lambda *_args: True,  # No open position
         }
 
-    def get_sell_conditions(self) -> Dict[str, Any]:
+    def get_sell_conditions(self) -> dict[str, Any]:
         """Momentum sell conditions."""
         return {
-            "has_pos": lambda *args: True,  # Has open position
-            "stop_trend": lambda *args: True,  # Price below MA
+            "has_pos": lambda *_args: True,  # Has open position
+            "stop_trend": lambda *_args: True,  # Price below MA
         }
 
     def get_buy_price_func(self) -> Any:
@@ -237,19 +219,19 @@ class VBOStrategy(SimpleStrategy):
     def __init__(self):
         super().__init__("vbo")
 
-    def get_buy_conditions(self) -> Dict[str, Any]:
+    def get_buy_conditions(self) -> dict[str, Any]:
         """VBO buy conditions."""
         return {
-            "no_pos": lambda *args: True,
+            "no_pos": lambda *_args: True,
             "breakout": self._is_breakout_triggered,
             "trend_short": self._is_price_above_short_ma,
             "trend_long": self._is_price_above_long_ma,
         }
 
-    def get_sell_conditions(self) -> Dict[str, Any]:
+    def get_sell_conditions(self) -> dict[str, Any]:
         """VBO sell conditions."""
         return {
-            "has_pos": lambda *args: True,
+            "has_pos": lambda *_args: True,
             "stop_trend": self._is_close_below_short_ma,
         }
 
@@ -264,14 +246,11 @@ class VBOStrategy(SimpleStrategy):
 
     def _is_price_above_short_ma(self, symbol: str) -> bool:
         """Check if price is above short moving average."""
-        lookback = self.config.lookback
-
-        bars = self.data_provider.get_bars(
-            symbol, lookback + 1
-        )  # Current bar excluded for MA calculation
-        if bars is None or len(bars) < lookback + 1:
+        bars = self.data_provider.get_bars(symbol, self.config.lookback + 1)
+        if bars is None or len(bars) < self.config.lookback + 1:
             return False
 
+        current_bar = self.data_provider.get_bar(symbol)
         close_prices = [Decimal(str(bar["close"])) for bar in bars.iloc[:-1]]
         close_sma = sum(close_prices) / len(close_prices)
 
@@ -279,13 +258,13 @@ class VBOStrategy(SimpleStrategy):
 
     def _is_price_above_long_ma(self, symbol: str) -> bool:
         """Check if price is above long moving average."""
-        lookback = self.config.lookback
         long_lookback = self.config.multiplier * self.config.lookback
 
         bars = self.data_provider.get_bars(symbol, long_lookback + 1)
         if bars is None or len(bars) < long_lookback + 1:
             return False
 
+        current_bar = self.data_provider.get_bar(symbol)
         close_prices = [Decimal(str(bar["close"])) for bar in bars[:-1]]
         close_sma_long = sum(close_prices) / len(close_prices)
 

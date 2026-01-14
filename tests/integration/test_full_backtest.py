@@ -1,10 +1,11 @@
 """Integration tests for full backtest workflows."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pandas as pd
 import pytest
 
+from bt.exceptions import InsufficientDataError, ValidationError
 from bt.framework import BacktestFramework
 from bt.strategies.implementations import VolatilityBreakoutStrategy
 
@@ -187,7 +188,7 @@ class TestErrorHandlingIntegration:
         minimal_data = {
             "BTC": pd.DataFrame(
                 {
-                    "datetime": [datetime(2020, 1, 1)],
+                    "datetime": [datetime(2020, 1, 1, tzinfo=timezone.utc)],
                     "open": [100],
                     "high": [105],
                     "low": [95],
@@ -196,7 +197,7 @@ class TestErrorHandlingIntegration:
             )
         }
 
-        with pytest.raises(Exception):  # Should raise insufficient data error
+        with pytest.raises(InsufficientDataError):  # Should raise insufficient data error
             framework.run_backtest(
                 strategy="volatility_breakout", symbols=["BTC"], data=minimal_data
             )
@@ -206,5 +207,5 @@ class TestErrorHandlingIntegration:
         """Test handling of invalid symbols."""
         data = {"INVALID_SYMBOL": pd.DataFrame()}
 
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             framework.run_backtest(strategy="buy_and_hold", symbols=["INVALID_SYMBOL"], data=data)

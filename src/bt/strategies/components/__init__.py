@@ -41,7 +41,7 @@ class BaseAllocation(IStrategyComponent):
 class AllInAllocation(BaseAllocation):
     """Buy with all available cash accounting for costs."""
 
-    def __call__(self, engine: "IBacktestEngine", symbol: str, price: float) -> float:
+    def __call__(self, engine: "IBacktestEngine", _symbol: str, price: float) -> float:
         if engine.portfolio.cash <= 0 or price <= 0:
             return 0.0
 
@@ -55,7 +55,7 @@ class AllInAllocation(BaseAllocation):
 class EqualWeightAllocation(BaseAllocation):
     """Equal weight allocation across all symbols."""
 
-    def __call__(self, engine: "IBacktestEngine", symbol: str, price: float) -> float:
+    def __call__(self, engine: "IBacktestEngine", _symbol: str, price: float) -> float:
         num_symbols = len(engine.data_provider.symbols)
         if num_symbols == 0:
             return 0.0
@@ -237,7 +237,7 @@ class VolatilityBreakoutPricing(BasePricing):
         return self._calculate_vbo_buy_price(engine, symbol, bars)
 
     def _calculate_vbo_buy_price(
-        self, engine: "IBacktestEngine", symbol: str, bars: pd.DataFrame
+        self, engine: "IBacktestEngine", _symbol: str, bars: pd.DataFrame
     ) -> float:
         """Calculate VBO buy price."""
         lookback = engine.config.lookback

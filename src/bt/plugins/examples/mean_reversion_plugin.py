@@ -168,7 +168,7 @@ class MeanReversionStrategy(BaseStrategy):
 
         return current_price * (1 - slippage)  # Accept discount for immediate execution
 
-    def _calculate_allocation(self, engine, symbol: str, price: float) -> float:
+    def _calculate_allocation(self, engine, _symbol: str, price: float) -> float:
         """Calculate position size based on risk management."""
         if price <= 0:
             return 0.0

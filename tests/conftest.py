@@ -1,6 +1,6 @@
 """Comprehensive test configuration and fixtures for pytest."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -100,7 +100,7 @@ def single_symbol_data(market_data_generator) -> pd.DataFrame:
     """Provide single symbol market data."""
     return market_data_generator.generate_ohlcv_data(
         symbol="BTC",
-        start_date=datetime(2020, 1, 1),
+        start_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
         periods=50,
         base_price=50000.0,
         volatility=0.03,
@@ -121,7 +121,7 @@ def correlated_market_data(market_data_generator) -> dict[str, pd.DataFrame]:
 
     return market_data_generator.generate_multi_symbol_data(
         symbols=["BTC", "ETH", "ADA"],
-        start_date=datetime(2020, 1, 1),
+        start_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
         periods=100,
         correlation_matrix=correlation_matrix,
         volatility=0.025,
@@ -133,7 +133,7 @@ def high_volatility_data(market_data_generator) -> pd.DataFrame:
     """Provide high volatility market data for stress testing."""
     return market_data_generator.generate_ohlcv_data(
         symbol="VOLATILE",
-        start_date=datetime(2020, 1, 1),
+        start_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
         periods=50,
         base_price=100.0,
         volatility=0.1,  # 10% daily volatility
@@ -268,7 +268,7 @@ def benchmark_data(market_data_generator) -> dict[str, pd.DataFrame]:
     """Provide benchmark-sized data for performance testing."""
     return market_data_generator.generate_multi_symbol_data(
         symbols=["BTC", "ETH", "ADA", "SOL", "DOT", "LINK", "UNI", "AAVE"],
-        start_date=datetime(2018, 1, 1),
+        start_date=datetime(2018, 1, 1, tzinfo=timezone.utc),
         periods=1000,  # ~3 years of daily data
         volatility=0.03,
     )
@@ -279,7 +279,7 @@ def large_portfolio_data(market_data_generator) -> dict[str, pd.DataFrame]:
     """Provide data for testing large portfolios."""
     return market_data_generator.generate_multi_symbol_data(
         symbols=[f"ASSET_{i:03d}" for i in range(50)],  # 50 assets
-        start_date=datetime(2020, 1, 1),
+        start_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
         periods=252,
         volatility=0.02,
     )

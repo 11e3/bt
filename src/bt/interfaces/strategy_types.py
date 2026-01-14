@@ -4,7 +4,7 @@ Provides clean type definitions for strategy components
 without circular dependencies.
 """
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
     from bt.interfaces.protocols import IBacktestEngine
@@ -35,7 +35,6 @@ class AllocationFunc(Protocol):
 
 
 # Type aliases for better readability
-from typing import Any
 
 ConditionDict = dict[str, ConditionFunc]
 StrategyConfig = dict[str, Any]

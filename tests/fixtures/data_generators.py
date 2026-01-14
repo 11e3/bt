@@ -106,8 +106,8 @@ class MarketDataGenerator:
 
         # Generate correlated returns
         uncorrelated_returns = self.rng.normal(0, 0.02, (periods, len(symbols)))
-        L = np.linalg.cholesky(correlation_matrix)
-        correlated_returns = uncorrelated_returns @ L.T
+        cholesky = np.linalg.cholesky(correlation_matrix)
+        correlated_returns = uncorrelated_returns @ cholesky.T
 
         data = {}
         for i, symbol in enumerate(symbols):

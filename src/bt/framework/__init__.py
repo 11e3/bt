@@ -4,6 +4,7 @@ Provides a single entry point for common backtesting operations
 with streamlined imports and configuration.
 """
 
+import contextlib
 from typing import Any, Optional
 
 from bt.config.settings import BacktestConfig, create_production_config, get_config_manager
@@ -58,10 +59,8 @@ class BacktestFramework:
         self._config = config or {}
 
         # Register core services
-        try:
+        with contextlib.suppress(BaseException):
             self.container.register_singleton(SecurityManager, SecurityManager)
-        except:
-            pass  # Ignore registration errors for now
 
         # Initialize orchestrator with container
         self.orchestrator = BacktestOrchestrator(self.container, config, self.logger)
@@ -76,7 +75,7 @@ class BacktestFramework:
         symbols: list[str],
         data: dict[str, Any],
         config: dict[str, Any] | None = None,
-        **kwargs,
+        **_kwargs,
     ) -> dict[str, Any]:
         """Run a backtest with simplified interface.
 

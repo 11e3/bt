@@ -1,6 +1,6 @@
 """Performance benchmarks for critical backtest operations."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import numpy as np
 import pytest
@@ -135,7 +135,7 @@ class TestDataProcessingPerformance:
         def generate_data():
             return market_data_generator.generate_multi_symbol_data(
                 symbols=[f"SYMBOL_{i:03d}" for i in range(10)],
-                start_date=datetime(2020, 1, 1),
+                start_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
                 periods=500,
                 volatility=0.02,
             )
@@ -160,7 +160,7 @@ class TestDataProcessingPerformance:
         def generate_correlated_data():
             return market_data_generator.generate_multi_symbol_data(
                 symbols=["A", "B", "C", "D", "E"],
-                start_date=datetime(2020, 1, 1),
+                start_date=datetime(2020, 1, 1, tzinfo=timezone.utc),
                 periods=252,
                 correlation_matrix=correlation_matrix,
             )

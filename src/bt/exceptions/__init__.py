@@ -44,7 +44,7 @@ class ErrorCode(str, Enum):
     VALIDATION_ERROR = "VALIDATION_ERROR"
 
 
-class BacktestException(Exception):
+class BacktestError(Exception):
     """Base exception for all backtesting framework errors."""
 
     def __init__(
@@ -76,7 +76,7 @@ class BacktestException(Exception):
         }
 
 
-class ConfigurationError(BacktestException):
+class ConfigurationError(BacktestError):
     """Exception for configuration-related errors."""
 
     def __init__(
@@ -91,7 +91,7 @@ class ConfigurationError(BacktestException):
         super().__init__(message, error_code=ErrorCode.INVALID_CONFIG, context=context, **kwargs)
 
 
-class DataError(BacktestException):
+class DataError(BacktestError):
     """Exception for data-related errors."""
 
     def __init__(
@@ -112,7 +112,7 @@ class DataError(BacktestException):
         )
 
 
-class ValidationError(BacktestException):
+class ValidationError(BacktestError):
     """Exception for input validation errors."""
 
     def __init__(
@@ -134,7 +134,7 @@ class ValidationError(BacktestException):
         super().__init__(message, error_code=ErrorCode.VALIDATION_ERROR, context=context, **kwargs)
 
 
-class InsufficientFundsError(BacktestException):
+class InsufficientFundsError(BacktestError):
     """Exception for insufficient funds during trading."""
 
     def __init__(self, required: float, available: float, symbol: str, **kwargs):
@@ -157,7 +157,7 @@ class InsufficientFundsError(BacktestException):
         )
 
 
-class StrategyError(BacktestException):
+class StrategyError(BacktestError):
     """Exception for strategy-related errors."""
 
     def __init__(
@@ -178,7 +178,7 @@ class StrategyError(BacktestException):
         )
 
 
-class BacktestExecutionError(BacktestException):
+class BacktestExecutionError(BacktestError):
     """Exception for backtest execution failures."""
 
     def __init__(
@@ -195,7 +195,7 @@ class BacktestExecutionError(BacktestException):
         )
 
 
-class InsufficientDataError(BacktestException):
+class InsufficientDataError(BacktestError):
     """Raised when insufficient data is available for analysis."""
 
     def __init__(
@@ -216,7 +216,7 @@ class InsufficientDataError(BacktestException):
         )
 
 
-class SecurityError(BacktestException):
+class SecurityError(BacktestError):
     """Raised when security violations are detected."""
 
     def __init__(
@@ -345,7 +345,7 @@ def validate_parameters(**validators):
                     except Exception as e:
                         raise ErrorHandler.create_validation_error(
                             message=str(e), field=param_name, value=kwargs[param_name]
-                        )
+                        ) from e
             return func(*args, **kwargs)
 
         return wrapper
