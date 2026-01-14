@@ -107,7 +107,7 @@ jobs:
         pip-audit --format json --output pip-audit-report.json || true
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: security-reports
         path: |
@@ -142,7 +142,7 @@ jobs:
         python scripts/code_quality.py --path src/ --output quality_report.txt
 
     - name: Upload quality reports
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: quality-reports
         path: quality_report.txt
@@ -171,7 +171,7 @@ jobs:
       run: twine check dist/*
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: dist
         path: dist/
@@ -201,7 +201,7 @@ jobs:
         make html
 
     - name: Upload documentation
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: docs
         path: docs/_build/html/
@@ -229,7 +229,7 @@ jobs:
         pytest tests/ -k "benchmark" --benchmark-only --benchmark-json=benchmark.json
 
     - name: Upload performance results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: performance-results
         path: benchmark.json

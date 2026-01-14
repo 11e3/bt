@@ -107,7 +107,7 @@ jobs:
         echo "- 💬 [Discussions](https://github.com/your-org/bt-framework/discussions)" >> release_notes.md
 
     - name: Upload release notes
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v6
       with:
         name: release-announcement
         path: release_notes.md
