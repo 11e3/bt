@@ -97,10 +97,8 @@ jobs:
         pip install bandit safety pip-audit
 
     - name: Run comprehensive security check
-      env:
-        PYTHONPATH: src
       run: |
-        python scripts/security_check.py --path src/
+        PYTHONPATH=src python scripts/security_check.py --path src/
 
     - name: Run additional security tools
       run: |
