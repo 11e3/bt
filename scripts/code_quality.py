@@ -32,9 +32,9 @@ def run_performance_profiling():
 
     # Import and profile key components
     try:
-        from bt import BacktestFramework
-        from bt.data.storage import get_data_manager
-        from bt.security import SecurityManager
+        from bt import BacktestFramework  # noqa: I001
+        from bt.data.storage import get_data_manager  # noqa: I001
+        from bt.security import SecurityManager  # noqa: I001
 
         # Profile framework initialization
         with profiler.profile_context("framework_initialization"):

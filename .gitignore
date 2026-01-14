@@ -80,7 +80,7 @@ data/cache/
 *.db
 *.sqlite
 *.sqlite3
-data/
+./data/
 output/
 
 # Monitoring and profiling
