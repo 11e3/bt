@@ -7,7 +7,7 @@ name = "bt"
 version = "0.1.0"
 description = "Event-driven cryptocurrency backtesting framework"
 readme = "README.md"
-requires-python = ">=3.10,<3.12"
+requires-python = ">=3.9,<3.13"
 license = {text = "MIT"}
 authors = [
     {name = "BT Team"}
@@ -39,6 +39,19 @@ dev = [
     "pandas-stubs>=2.3.3",
     "matplotlib-stubs>=0.3.11",
     "types-PyYAML>=6.0.1",
+]
+test = [
+    "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-benchmark>=5.0.0",
+]
+docs = [
+    "sphinx>=7.0.0",
+    "sphinx-rtd-theme>=2.0.0",
+]
+benchmark = [
+    "pytest-benchmark>=5.0.0",
 ]
 
 [project.scripts]
