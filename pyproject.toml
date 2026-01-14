@@ -7,7 +7,7 @@ name = "bt"
 version = "0.1.0"
 description = "Event-driven cryptocurrency backtesting framework"
 readme = "README.md"
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.10,<3.13"
 license = {text = "MIT"}
 authors = [
     {name = "BT Team"}
