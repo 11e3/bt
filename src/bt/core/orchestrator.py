@@ -432,18 +432,32 @@ class PerformanceTracker:
     def record_trade(
         self, symbol: str, date: datetime, action: str, price: Amount, quantity: Amount
     ) -> None:
-        """Record a trade for performance tracking."""
+        """Record a trade for performance tracking.
+
+        For sell actions, matches with previous buy to calculate P&L.
+        """
         if action == "sell":
-            # Find matching buy trade for this symbol
-            buy_trades = [t for t in self._trades if t["symbol"] == symbol and t["action"] == "buy"]
+            # Find matching buy trade for this symbol (FIFO)
+            buy_trades = [
+                (i, t)
+                for i, t in enumerate(self._trades)
+                if t.get("symbol") == symbol and t.get("action") == "buy" and not t.get("_matched")
+            ]
+
             if buy_trades:
-                last_buy = buy_trades[-1]
+                idx, last_buy = buy_trades[0]  # FIFO: first unmatched buy
                 entry_price = last_buy["price"]
                 exit_price = float(price)
                 qty = float(quantity)
-                pnl = (exit_price - entry_price) * qty
-                return_pct = ((exit_price / entry_price) - 1) * 100 if entry_price > 0 else 0
 
+                # Calculate P&L and return percentage
+                pnl = (exit_price - entry_price) * qty
+                return_pct = ((exit_price / entry_price) - 1) * 100 if entry_price > 0 else 0.0
+
+                # Mark buy as matched
+                self._trades[idx]["_matched"] = True
+
+                # Record completed round-trip trade
                 self._trades.append(
                     {
                         "symbol": symbol,
@@ -456,8 +470,29 @@ class PerformanceTracker:
                         "return_pct": return_pct,
                     }
                 )
+
+                self.logger.debug(
+                    f"Round-trip trade: {symbol}",
+                    extra={
+                        "entry_price": entry_price,
+                        "exit_price": exit_price,
+                        "pnl": pnl,
+                        "return_pct": return_pct,
+                    },
+                )
+            else:
+                # No matching buy found - just record sell
+                self._trades.append(
+                    {
+                        "symbol": symbol,
+                        "date": date,
+                        "action": action,
+                        "price": float(price),
+                        "quantity": float(quantity),
+                    }
+                )
         else:
-            # Store buy for later matching
+            # Record buy for later matching
             self._trades.append(
                 {
                     "symbol": symbol,
@@ -465,12 +500,27 @@ class PerformanceTracker:
                     "action": action,
                     "price": float(price),
                     "quantity": float(quantity),
+                    "_matched": False,
                 }
             )
 
+        self.logger.debug(
+            f"Trade recorded: {action} {symbol}",
+            extra={
+                "symbol": symbol,
+                "action": action,
+                "price": float(price),
+                "quantity": float(quantity),
+            },
+        )
+
     def get_all_trades(self) -> list[dict[str, any]]:
-        """Get all recorded trades."""
-        return self._trades.copy()
+        """Get all completed round-trip trades (excludes pending buys)."""
+        return [
+            t
+            for t in self._trades
+            if "entry_date" in t and "exit_date" in t  # Only round-trip trades
+        ]
 
     def get_dates(self) -> list[datetime]:
         """Get all tracking dates."""
