@@ -534,10 +534,12 @@ class PerformanceTracker:
         """Generate performance metrics using metrics generator."""
         if self._initial_value is not None and len(self._equity_values) > 1:
             try:
+                # Only pass completed round-trip trades (not pending buys)
+                completed_trades = self.get_all_trades()
                 return self.metrics_generator.calculate_metrics(
                     self._equity_values,
                     self._dates,
-                    self._trades,
+                    completed_trades,
                     Amount(get_decimal(self._initial_value)),
                 )
             except Exception as e:
