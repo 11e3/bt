@@ -294,6 +294,25 @@ class ConfigurationManager:
         """Get all configurations as nested dictionary."""
         return {name: config.dict() for name, config in self._configs.items()}
 
+    def validate_backtest_parameters(self, params: dict[str, Any]) -> list[str]:
+        """Validate backtest parameters against current configuration."""
+        config = self.get_backtest_config()
+        errors = []
+
+        # Validate initial cash
+        if "initial_cash" in params:
+            cash = params["initial_cash"]
+            if cash < config.initial_cash:
+                errors.append(f"initial_cash must be >= {config.initial_cash}")
+
+        # Validate fee rate
+        if "fee_rate" in params:
+            fee = params["fee_rate"]
+            if not (0.0 <= fee <= config.fee_rate):
+                errors.append(f"fee_rate must be between 0.0 and {config.fee_rate}")
+
+        return errors
+
 
 # Global configuration manager instance
 _config_manager = None

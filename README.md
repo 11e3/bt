@@ -1,33 +1,44 @@
 # BT Framework
 
-**Enterprise-grade cryptocurrency backtesting platform** with SOLID architecture, comprehensive security, and production-ready infrastructure.
+**Backtesting engine for the Crypto Quant Ecosystem.**
+
+Part of: `crypto-quant-system` → **`bt`** → `crypto-bot` → `crypto-regime-classifier-ml`
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![SOLID](https://img.shields.io/badge/Architecture-SOLID-brightgreen.svg)](./SOLID_REFACTORING.md)
 
-## 🎯 Version 2.0: SOLID Architecture
+## Ecosystem Role
 
-**Clean, maintainable design** following SOLID principles.
-
-**Quick Migration (1 line):**
-```python
-from bt.framework.facade import BacktestFacade as BacktestFramework
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Crypto Quant Ecosystem                       │
+├─────────────────────────────────────────────────────────────────┤
+│  crypto-quant-system     │  Dashboard & data pipeline          │
+│    ├── Data download     │  - Fetches OHLCV from exchanges     │
+│    ├── Data processing   │  - Imports bt for backtesting       │
+│    └── Bot log viewer    │  - Reads logs from GCS              │
+├──────────────────────────┼──────────────────────────────────────┤
+│  bt (this repo)          │  Backtesting engine                 │
+│    ├── Strategy dev      │  - SOLID architecture               │
+│    ├── Performance calc  │  - Used by crypto-quant-system      │
+│    └── Order simulation  │  - Strategies exported to crypto-bot│
+├──────────────────────────┼──────────────────────────────────────┤
+│  crypto-bot              │  Live trading bot                   │
+│    ├── Auto trading      │  - Runs on GCP e2-micro             │
+│    ├── ML integration    │  - Loads models from GCS            │
+│    └── Logging           │  - Uploads logs to GCS              │
+├──────────────────────────┼──────────────────────────────────────┤
+│  crypto-regime-ml        │  Market regime classifier           │
+│    └── Model training    │  - Uploads .pkl to GCS              │
+└──────────────────────────┴──────────────────────────────────────┘
 ```
 
-**New Features:**
-- 4 order types (Market, Limit, StopLoss, StopLimit)
-- Component-based architecture (15 focused classes)
-- Dependency injection for easy testing
-
-📘 [Full Guide](./SOLID_REFACTORING.md) | 🔄 [Migration](./MIGRATION_GUIDE.md) | ⚡ [Quick Ref](./SOLID_SUMMARY.md)
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
 ```bash
-# Clone and install
 git clone <repository-url>
 cd bt
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -36,49 +47,12 @@ uv sync --dev
 
 ### Run Backtest
 
-```bash
-source .venv/bin/activate
-python examples/quickstart.py
-```
-
-### Quality Checks
-
-```bash
-./scripts/check.sh        # All checks
-uv run pytest             # Tests only
-uv run ruff check src/    # Linting
-```
-
-## 📁 Project Structure
-
-```
-bt-framework/
-├── src/bt/
-│   ├── domain/          # Business models, types, orders
-│   ├── engine/          # Backtest execution, portfolio
-│   ├── framework/       # High-level API, facade
-│   ├── strategies/      # Trading strategies
-│   ├── reporting/       # Performance metrics
-│   ├── data/           # Data providers
-│   ├── security/       # Input validation
-│   └── monitoring/     # Metrics, profiling
-├── tests/              # Test suite
-├── docs/               # Documentation
-└── examples/           # Usage examples
-```
-
-## 💡 Usage Examples
-
-### Basic Backtest
-
 ```python
 from bt.framework.facade import BacktestFacade as BacktestFramework
 import pandas as pd
 
-# Load data
 data = pd.read_csv('data/BTC.csv', parse_dates=['datetime'])
 
-# Run backtest
 framework = BacktestFramework()
 result = framework.run_backtest(
     strategy='volatility_breakout',
@@ -90,187 +64,93 @@ print(f"Return: {result['performance']['total_return']:.2f}%")
 print(f"Sharpe: {result['performance']['sharpe']:.2f}")
 ```
 
-### Component Access (SOLID)
+### Integration with crypto-quant-system
 
 ```python
-from bt.engine.portfolio_refactored import PortfolioRefactored
-from decimal import Decimal
+# In crypto-quant-system dashboard
+from bt.framework.facade import BacktestFacade
 
-portfolio = PortfolioRefactored(
-    initial_cash=Decimal("1000000"),
-    fee=Decimal("0.0005"),
-    slippage=Decimal("0.001")
-)
-
-# Access individual components
-win_rate = portfolio.trade_recorder.get_win_rate()
-max_dd = portfolio.equity_tracker.get_max_drawdown()
+def run_dashboard_backtest(strategy_name: str, data: dict):
+    framework = BacktestFacade()
+    return framework.run_backtest(
+        strategy=strategy_name,
+        symbols=list(data.keys()),
+        data=data
+    )
 ```
 
-### New Order Types
+## Architecture
 
-```python
-from bt.domain.orders import LimitOrder, StopLossOrder, OrderSide
-from datetime import datetime
-from decimal import Decimal
+### SOLID Design (v2.0)
 
-# Limit order
-limit = LimitOrder(
-    "BTC", OrderSide.BUY,
-    Decimal("0.1"), Decimal("48000"),
-    datetime.now()
-)
-
-# Stop loss
-stop = StopLossOrder(
-    "BTC", OrderSide.SELL,
-    Decimal("0.1"), Decimal("45000"),
-    datetime.now()
-)
 ```
-
-## 🏗️ Architecture
-
-### SOLID Principles Applied
-
-- **Single Responsibility**: 15 focused classes (was 2 monoliths)
-- **Open/Closed**: Extensible order types via inheritance
-- **Liskov Substitution**: Perfect polymorphism in orders
-- **Interface Segregation**: 12 small interfaces vs 2 large ones
-- **Dependency Inversion**: Container-based DI
+src/bt/
+├── domain/          # Business models, order types
+├── engine/          # Backtest execution, portfolio
+├── framework/       # High-level API (BacktestFacade)
+├── strategies/      # Trading strategies
+├── reporting/       # Performance metrics
+├── data/            # Data providers
+├── security/        # Input validation
+└── monitoring/      # Metrics, profiling
+```
 
 ### Key Components
 
-**Domain Layer:**
-- Order abstraction (4 types)
-- Business models (Position, Trade, etc.)
-- Type aliases (Price, Quantity, etc.)
+| Layer | Component | Description |
+|-------|-----------|-------------|
+| Framework | `BacktestFacade` | Main entry point for crypto-quant-system |
+| Engine | `PortfolioRefactored` | State management with DI |
+| Domain | `Order` (4 types) | Market, Limit, StopLoss, StopLimit |
+| Reporting | `ReportGenerator` | Performance metrics for dashboard |
 
-**Engine Layer:**
-- PortfolioRefactored (state management)
-- OrderExecutor (execution logic)
-- TradeRecorder (trade history)
-- EquityTracker (performance tracking)
+### Order Types
 
-**Framework Layer:**
-- BacktestFacade (main entry point)
-- BacktestRunner (execution)
-- StrategyManager (strategy registry)
-- DataLoader (data handling)
-- ReportGenerator (reporting)
+```python
+from bt.domain.orders import LimitOrder, StopLossOrder, OrderSide
+from decimal import Decimal
+from datetime import datetime
 
-## 🧪 Testing
+limit = LimitOrder("BTC", OrderSide.BUY, Decimal("0.1"), Decimal("48000"), datetime.now())
+stop = StopLossOrder("BTC", OrderSide.SELL, Decimal("0.1"), Decimal("45000"), datetime.now())
+```
+
+## Available Strategies
+
+| Strategy | Description | Status |
+|----------|-------------|--------|
+| `volatility_breakout` | VBO with MA filters | ✅ Production |
+| `momentum` | Trend following | ✅ Ready |
+| `mean_reversion` | Mean reversion | ✅ Ready |
+| Custom | Plugin system | ✅ Supported |
+
+## Development
 
 ```bash
-# Run all tests
-uv run pytest
+# Quality checks
+./scripts/check.sh        # All checks
+uv run pytest             # Tests
+uv run ruff check src/    # Linting
+uv run mypy src/          # Type check
 
 # With coverage
 uv run pytest --cov=src/bt --cov-report=html
-
-# Specific test
-uv run pytest tests/test_portfolio.py -v
 ```
 
-## 📊 Available Strategies
+## Documentation
 
-- `volatility_breakout` - Range breakout with volatility filtering
-- `momentum` - Trend following
-- `mean_reversion` - Mean reversion
-- Custom strategies via plugin system
+- [SOLID Refactoring Guide](./SOLID_REFACTORING.md)
+- [Migration Guide](./MIGRATION_GUIDE.md)
+- [API Reference](./docs/api/)
 
-## 🔒 Security
+## License
 
-- Input validation with Pydantic
-- Secure configuration management
-- Static analysis (Bandit, Safety)
-- No hardcoded credentials
-- Comprehensive error handling
+MIT License
 
-## 📈 Performance
+## Disclaimer
 
-- Decimal precision for financial calculations
-- NumPy optimization for equity curves
-- Efficient data structures
-- <3% overhead from SOLID refactoring
-
-## 🛠️ Development
-
-### Setup
-
-```bash
-# Install with dev dependencies
-uv sync --dev
-
-# Install pre-commit hooks
-uv run pre-commit install
-```
-
-### Code Quality
-
-```bash
-# Format code
-uv run ruff format src/
-
-# Lint
-uv run ruff check src/ --fix
-
-# Type check
-uv run mypy src/
-
-# Security scan
-uv run bandit -r src/
-```
-
-### CI/CD
-
-GitHub Actions runs automatically on push:
-- Linting (Ruff)
-- Type checking (MyPy)
-- Security scanning (Bandit, Safety)
-- Tests (pytest)
-- Coverage reporting
-
-## 📚 Documentation
-
-- [SOLID Refactoring Guide](./SOLID_REFACTORING.md) - Complete architecture guide
-- [Migration Guide](./MIGRATION_GUIDE.md) - Step-by-step migration
-- [Quick Summary](./SOLID_SUMMARY.md) - Quick reference
-- [Principles Applied](./docs/SOLID_PRINCIPLES_APPLIED.md) - Detailed principles
-- [Changelog](./CHANGELOG_SOLID.md) - Version history
-- [API Reference](./docs/api/) - API documentation
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing`)
-5. Open Pull Request
-
-Ensure all quality checks pass: `./scripts/check.sh`
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## ⚠️ Disclaimer
-
-**For educational and research purposes only.**
-
-- Past performance does not guarantee future results
-- Cryptocurrency trading involves substantial risk
-- Never deploy without comprehensive testing
-- Consult financial professionals before investing
-
-## 🙏 Acknowledgments
-
-- Robert C. Martin (Uncle Bob) for SOLID principles
-- Python community for excellent tools
-- All contributors and testers
+**For educational and research purposes only.** Past performance does not guarantee future results. Cryptocurrency trading involves substantial risk.
 
 ---
 
-**Version**: 2.0.0-SOLID
-**Status**: Production Ready
-**Last Updated**: 2026-01-16
+**Version**: 2.0.0-SOLID | **Ecosystem**: Crypto Quant System

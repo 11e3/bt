@@ -81,13 +81,13 @@ from bt.reporting import (
 # Security
 from bt.security import SecurityManager, scan_security, validate_input
 from bt.strategies import (
-    close_below_short_ma,
-    create_vbo_momentum_allocator,
-    get_current_close,
-    get_vbo_buy_price,
-    price_above_long_ma,
-    price_above_short_ma,
-    vbo_breakout_triggered,
+    BuyAndHoldStrategy,
+    MomentumStrategy,
+    StrategyFactory,
+    VolatilityBreakoutStrategy,
+    create_allocation,
+    create_condition,
+    create_pricing,
 )
 
 # Utilities
@@ -124,14 +124,13 @@ __all__ = [
     "BasePerformanceMetrics",
     "BaseConfiguration",
     # Strategy components
-    "strategies",
-    "create_vbo_momentum_allocator",
-    "vbo_breakout_triggered",
-    "price_above_short_ma",
-    "price_above_long_ma",
-    "close_below_short_ma",
-    "get_vbo_buy_price",
-    "get_current_close",
+    "VolatilityBreakoutStrategy",
+    "MomentumStrategy",
+    "BuyAndHoldStrategy",
+    "StrategyFactory",
+    "create_allocation",
+    "create_condition",
+    "create_pricing",
     # Reporting
     "reporting",
     "calculate_performance_metrics",

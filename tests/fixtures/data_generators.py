@@ -190,7 +190,10 @@ class BacktestResultGenerator:
 
         # Generate trades
         trades = []
-        trade_dates = sorted(self.rng.choice(dates, num_trades, replace=False))
+        # Convert dates to list to ensure proper datetime handling
+        dates_list = list(dates)
+        trade_indices = self.rng.choice(len(dates_list), num_trades, replace=False)
+        trade_dates = sorted([dates_list[i] for i in trade_indices])
 
         for i, trade_date in enumerate(trade_dates):
             is_win = self.rng.random() < win_rate

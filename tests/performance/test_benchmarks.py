@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from bt.framework import BacktestFramework
-from bt.reporting.metrics_optimized import calculate_performance_metrics_optimized
+from bt.reporting.metrics import calculate_performance_metrics
 from bt.utils.indicator_cache import get_indicator_cache
 
 
@@ -61,7 +61,7 @@ class TestBacktestPerformance:
         dates = crash_scenario["equity_curve"]["dates"]
 
         def calculate_metrics():
-            return calculate_performance_metrics_optimized(
+            return calculate_performance_metrics(
                 equity_curve=equity_values,
                 dates=[datetime.fromisoformat(d) for d in dates],
                 trades=[],

@@ -208,9 +208,9 @@ class MomentumStrategy(SimpleStrategy):
 
     def get_allocation_func(self, top_n: int = 3, mom_lookback: int = 20) -> Any:
         """Momentum allocation."""
-        from bt.strategies.allocation import create_momentum_allocator
+        from bt.strategies.components import VolatilityBreakoutAllocation
 
-        return create_momentum_allocator(top_n, mom_lookback)
+        return VolatilityBreakoutAllocation(top_n=top_n, mom_lookback=mom_lookback)
 
 
 class VBOStrategy(SimpleStrategy):

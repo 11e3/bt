@@ -65,6 +65,35 @@ class EqualWeightAllocation(BaseAllocation):
         return target_allocation / (price * cost_multiplier)
 
 
+class MomentumAllocation(BaseAllocation):
+    """Momentum allocation - equal weight allocation with momentum filter."""
+
+    def __call__(self, engine: "IBacktestEngine", symbol: str, price: float) -> float:
+        mom_lookback = self.config.get("mom_lookback", 20)
+
+        # Check momentum for this symbol
+        bars = engine.get_bars(symbol, mom_lookback + 2)
+        if bars is None or len(bars) < mom_lookback + 2:
+            return 0.0
+
+        close_prices = bars["close"].values
+        prev_close = close_prices[-2]
+        old_close = close_prices[-(mom_lookback + 2)]
+
+        momentum = prev_close / old_close - 1 if old_close > 0 else -999.0
+        if np.isnan(momentum) or momentum <= 0:
+            return 0.0
+
+        # Equal allocation among symbols
+        num_symbols = len(engine.data_provider.symbols)
+        if num_symbols == 0:
+            return 0.0
+
+        target_allocation = float(engine.portfolio.cash) / num_symbols
+        cost_multiplier = 1 + float(engine.config.fee) + float(engine.config.slippage)
+        return target_allocation / (price * cost_multiplier)
+
+
 class VolatilityBreakoutAllocation(BaseAllocation):
     """VBO momentum allocation - allocate to top N momentum assets equally."""
 
@@ -338,6 +367,7 @@ def create_allocation(allocation_type: str, **config) -> IAllocation:
     allocations = {
         "all_in": AllInAllocation,
         "equal_weight": EqualWeightAllocation,
+        "equal_weight_momentum": MomentumAllocation,
         "volatility_breakout": VolatilityBreakoutAllocation,
     }
 

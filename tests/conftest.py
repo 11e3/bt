@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from bt.config.settings import ConfigurationManager
+from bt.config import ConfigurationManager
 from bt.core.container import Container, get_default_container
 from bt.core.registry import get_strategy_registry
 from bt.framework import BacktestFramework

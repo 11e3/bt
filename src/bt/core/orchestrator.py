@@ -199,6 +199,10 @@ class BacktestOrchestrator:
                     # Execute buy order
                     quantity = strategy.get_allocation_func()(self, symbol, buy_price)
 
+                    # Skip if allocation returns 0 (e.g., momentum filter)
+                    if quantity <= 0:
+                        return
+
                     self.executor.execute_buy_order(symbol, buy_price, quantity, current_date, bar)
 
                     self.tracker.record_trade(symbol, current_date, "buy", buy_price, quantity)

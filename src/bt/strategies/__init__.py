@@ -1,24 +1,80 @@
 """Trading strategies implementations."""
 
-from . import allocation, conditions, pricing
-from .conditions import (
-    close_below_short_ma,
-    price_above_long_ma,
-    price_above_short_ma,
-    vbo_breakout_triggered,
+from .allocation import (
+    all_in_allocation,
+    cash_partition_allocation,
+    create_cash_partition_allocator,
+    create_momentum_allocator,
+    create_target_weight_allocator,
+    equal_weight_allocation,
 )
-from .pricing import get_current_close, get_vbo_buy_price
-from .vbo_allocation import create_vbo_momentum_allocator
+from .components import (
+    AllInAllocation,
+    BaseAllocation,
+    BaseCondition,
+    BaseIndicator,
+    BasePricing,
+    CurrentClosePricing,
+    EMAIndicator,
+    EqualWeightAllocation,
+    MomentumIndicator,
+    NoOpenPositionCondition,
+    PriceAboveSMACondition,
+    RSIIndicator,
+    SMAIndicator,
+    VolatilityBreakoutAllocation,
+    VolatilityBreakoutCondition,
+    VolatilityBreakoutPricing,
+    create_allocation,
+    create_condition,
+    create_indicator,
+    create_pricing,
+)
+from .implementations import (
+    BaseStrategy,
+    BuyAndHoldStrategy,
+    MomentumStrategy,
+    StrategyFactory,
+    VolatilityBreakoutStrategy,
+)
 
 __all__ = [
-    "allocation",
-    "conditions",
-    "pricing",
-    "create_vbo_momentum_allocator",
-    "vbo_breakout_triggered",
-    "price_above_short_ma",
-    "price_above_long_ma",
-    "close_below_short_ma",
-    "get_vbo_buy_price",
-    "get_current_close",
+    # Allocation functions
+    "all_in_allocation",
+    "equal_weight_allocation",
+    "cash_partition_allocation",
+    "create_cash_partition_allocator",
+    "create_target_weight_allocator",
+    "create_momentum_allocator",
+    # Components - Allocations
+    "BaseAllocation",
+    "AllInAllocation",
+    "EqualWeightAllocation",
+    "VolatilityBreakoutAllocation",
+    # Components - Conditions
+    "BaseCondition",
+    "NoOpenPositionCondition",
+    "PriceAboveSMACondition",
+    "VolatilityBreakoutCondition",
+    # Components - Pricing
+    "BasePricing",
+    "CurrentClosePricing",
+    "VolatilityBreakoutPricing",
+    # Components - Indicators
+    "BaseIndicator",
+    "SMAIndicator",
+    "EMAIndicator",
+    "RSIIndicator",
+    "MomentumIndicator",
+    # Component factories
+    "create_allocation",
+    "create_condition",
+    "create_pricing",
+    "create_indicator",
+    # Strategy implementations
+    "BaseStrategy",
+    "VolatilityBreakoutStrategy",
+    "MomentumStrategy",
+    "BuyAndHoldStrategy",
+    "StrategyFactory",
 ]
