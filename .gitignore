@@ -18,6 +18,7 @@ wheels/
 *.egg-info
 *.egg
 MANIFEST
+data/
 
 # Virtual environments
 .venv/
