@@ -4,7 +4,7 @@ Separates high-level backtest coordination from low-level
 execution, portfolio management, and performance tracking.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from bt.domain.types import Amount
@@ -19,6 +19,32 @@ from bt.utils.decimal_cache import get_decimal
 
 if TYPE_CHECKING:
     from bt.core.container import IContainer
+
+
+class BacktestConfig:
+    """Configuration wrapper providing attribute access to config dict."""
+
+    def __init__(self, config_dict: dict):
+        self._config = config_dict
+        # Set default values
+        self.fee = config_dict.get("fee", 0.0005)
+        self.slippage = config_dict.get("slippage", 0.001)
+        self.lookback = config_dict.get("lookback", 5)
+        self.multiplier = config_dict.get("multiplier", 2)
+        self.k_factor = config_dict.get("k_factor", 0.5)
+        self.top_n = config_dict.get("top_n", 3)
+        self.mom_lookback = config_dict.get("mom_lookback", 20)
+        self.initial_cash = config_dict.get("initial_cash", 1000000)
+
+    def get(self, key: str, default=None):
+        """Get config value with default."""
+        return self._config.get(key, default)
+
+    def __getattr__(self, name: str):
+        """Fallback attribute access to config dict."""
+        if name.startswith("_"):
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        return self._config.get(name)
 
 
 class BacktestOrchestrator:
@@ -45,7 +71,7 @@ class BacktestOrchestrator:
             logger: Optional logger instance
         """
         self.container = container
-        self.config = config or {}
+        self.config = BacktestConfig(config or {})
         self.logger = logger or container.get(ILogger)
 
         # Get required services
@@ -179,6 +205,29 @@ class BacktestOrchestrator:
 
                     self.portfolio.buy(symbol, buy_price, quantity, current_date)
                     self.tracker.update_equity(current_date, current_prices)
+
+    def get_bar(self, symbol: str):
+        """Get current bar for a symbol.
+
+        Args:
+            symbol: Symbol to get bar for
+
+        Returns:
+            Current bar data or None if not available
+        """
+        return self.data_provider.get_bar(symbol)
+
+    def get_bars(self, symbol: str, n: int):
+        """Get last n bars for a symbol.
+
+        Args:
+            symbol: Symbol to get bars for
+            n: Number of bars to retrieve
+
+        Returns:
+            DataFrame with n bars or None if not available
+        """
+        return self.data_provider.get_bars(symbol, n)
 
     def _evaluate_strategy_conditions(self, conditions: dict[str, any], symbol: str) -> list[bool]:
         """Evaluate all strategy conditions for a symbol."""
@@ -340,7 +389,7 @@ class PerformanceTracker:
     def initialize(self, symbols: list[str], initial_value: Amount) -> None:
         """Initialize tracking with starting values."""
         self._initial_value = float(initial_value)
-        self._dates.append(datetime.now(timezone.utc))  # Start with current date
+        # Don't add initial date here - it will be added on first update_equity call
         self._equity_values.append(float(initial_value))
 
         self.logger.info(

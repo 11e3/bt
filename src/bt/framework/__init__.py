@@ -129,12 +129,21 @@ class BacktestFramework:
         # Add framework configuration to results
         results["configuration"] = final_config
 
+        # Extract total_return from PerformanceMetrics if available
+        perf = results.get("performance")
+        total_return = 0
+        if perf is not None:
+            if hasattr(perf, "total_return"):
+                total_return = float(perf.total_return)
+            elif isinstance(perf, dict):
+                total_return = perf.get("total_return", 0)
+
         self.logger.info(
             f"Backtest completed for strategy: {strategy}",
             extra={
                 "symbols": symbols,
                 "trades": len(results.get("trades", [])),
-                "total_return": results.get("performance", {}).get("total_return", 0),
+                "total_return": total_return,
             },
         )
 

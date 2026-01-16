@@ -76,31 +76,50 @@ def calculate_performance_metrics(
     )
 
     # Trade statistics
+    # Support both Trade objects and dicts
+    def get_pnl(t):
+        """Extract PnL from Trade object or dict."""
+        if hasattr(t, "pnl"):
+            return float(t.pnl)
+        if isinstance(t, dict):
+            return float(t.get("pnl", 0))
+        return 0
+
     if trades:
-        winning_trades = [t for t in trades if t.pnl > 0]
-        losing_trades = [t for t in trades if t.pnl <= 0]
+        # Filter trades that have PnL data
+        trades_with_pnl = [t for t in trades if get_pnl(t) != 0 or hasattr(t, "pnl")]
 
-        win_rate = Percentage(Decimal(len(winning_trades) / len(trades) * 100))
+        if trades_with_pnl:
+            winning_trades = [t for t in trades_with_pnl if get_pnl(t) > 0]
+            losing_trades = [t for t in trades_with_pnl if get_pnl(t) <= 0]
 
-        total_profit = sum(float(t.pnl) for t in winning_trades)
-        total_loss = abs(sum(float(t.pnl) for t in losing_trades))
-        # Avoid infinity by capping very large values
-        if total_loss != 0:
-            pf = Decimal(total_profit / total_loss)
-            profit_factor = min(pf, METRIC_PRECISION)  # Cap at large finite number
+            win_rate = Percentage(Decimal(len(winning_trades) / len(trades_with_pnl) * 100))
+
+            total_profit = sum(get_pnl(t) for t in winning_trades)
+            total_loss = abs(sum(get_pnl(t) for t in losing_trades))
+            # Avoid infinity by capping very large values
+            if total_loss != 0:
+                pf = Decimal(total_profit / total_loss)
+                profit_factor = min(pf, METRIC_PRECISION)  # Cap at large finite number
+            else:
+                profit_factor = METRIC_PRECISION  # All winning trades: cap at large number
+
+            avg_win = Amount(
+                Decimal(str(float(np.mean([get_pnl(t) for t in winning_trades]))))
+                if winning_trades
+                else ZERO
+            )
+            avg_loss = Amount(
+                Decimal(str(float(np.mean([get_pnl(t) for t in losing_trades]))))
+                if losing_trades
+                else ZERO
+            )
         else:
-            profit_factor = METRIC_PRECISION  # All winning trades: cap at large number
-
-        avg_win = Amount(
-            Decimal(str(float(np.mean([float(t.pnl) for t in winning_trades]))))
-            if winning_trades
-            else ZERO
-        )
-        avg_loss = Amount(
-            Decimal(str(float(np.mean([float(t.pnl) for t in losing_trades]))))
-            if losing_trades
-            else ZERO
-        )
+            # No trades with PnL data
+            win_rate = Percentage(ZERO)
+            profit_factor = ZERO
+            avg_win = Amount(ZERO)
+            avg_loss = Amount(ZERO)
     else:
         win_rate = Percentage(ZERO)
         profit_factor = ZERO
@@ -109,6 +128,9 @@ def calculate_performance_metrics(
 
     # Yearly returns
     yearly_returns = calculate_yearly_returns(equity, dates)
+
+    # Filter trades to only include Trade objects (not dicts)
+    valid_trades = [t for t in trades if isinstance(t, Trade)]
 
     metrics = PerformanceMetrics(
         total_return=total_return,
@@ -123,7 +145,7 @@ def calculate_performance_metrics(
         final_equity=Amount(Decimal(equity[-1])),
         equity_curve=equity_curve,
         dates=dates,
-        trades=trades,
+        trades=valid_trades,
         yearly_returns=yearly_returns,
     )
 

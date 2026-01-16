@@ -152,6 +152,10 @@ class PriceAboveSMACondition(BaseCondition):
 class VolatilityBreakoutCondition(BaseCondition):
     """VBO breakout condition - price above volatility threshold."""
 
+    def __init__(self, k_factor: float = 0.5, lookback: int = 5, **_kwargs):
+        self.k_factor = k_factor
+        self.lookback = lookback
+
     def __call__(self, engine: "IBacktestEngine", symbol: str) -> bool:
         current_bar = engine.get_bar(symbol)
         if current_bar is None:
@@ -165,7 +169,7 @@ class VolatilityBreakoutCondition(BaseCondition):
 
     def _calculate_vbo_buy_price(self, engine: "IBacktestEngine", symbol: str) -> float:
         """Calculate VBO buy price using centralized logic."""
-        lookback = engine.config.lookback
+        lookback = self.lookback
         bars = engine.get_bars(symbol, lookback + 1)
 
         if bars is None or len(bars) < lookback + 1:
@@ -188,7 +192,7 @@ class VolatilityBreakoutCondition(BaseCondition):
         # VBO buy price calculation
         last_close = float(close_prices.iloc[-1])
         noise_adjusted_range = avg_range * noise_ratio
-        return last_close + noise_adjusted_range * 0.5  # K factor
+        return last_close + noise_adjusted_range * self.k_factor
 
     def _calculate_noise_ratio(self, prices: pd.Series) -> float:
         """Calculate noise ratio for volatility adjustment."""
@@ -226,21 +230,23 @@ class CurrentClosePricing(BasePricing):
 class VolatilityBreakoutPricing(BasePricing):
     """VBO pricing - calculates breakout buy price."""
 
+    def __init__(self, lookback: int = 5, k_factor: float = 0.5, **_kwargs):
+        self.lookback = lookback
+        self.k_factor = k_factor
+
     def __call__(self, engine: "IBacktestEngine", symbol: str) -> float:
-        lookback = engine.config.lookback
+        lookback = self.lookback
         bars = engine.get_bars(symbol, lookback + 1)
 
         if bars is None or len(bars) < lookback + 1:
             return 0.0
 
         # Use centralized VBO price calculation
-        return self._calculate_vbo_buy_price(engine, symbol, bars)
+        return self._calculate_vbo_buy_price(symbol, bars)
 
-    def _calculate_vbo_buy_price(
-        self, engine: "IBacktestEngine", _symbol: str, bars: pd.DataFrame
-    ) -> float:
+    def _calculate_vbo_buy_price(self, _symbol: str, bars: pd.DataFrame) -> float:
         """Calculate VBO buy price."""
-        lookback = engine.config.lookback
+        lookback = self.lookback
 
         # Calculate range and noise
         close_prices = bars["close"].iloc[:-1]
@@ -256,7 +262,7 @@ class VolatilityBreakoutPricing(BasePricing):
         # Calculate buy price
         last_close = float(close_prices.iloc[-1])
         noise_adjusted_range = avg_range * noise_ratio
-        return last_close + noise_adjusted_range * 0.5
+        return last_close + noise_adjusted_range * self.k_factor
 
 
 # === INDICATOR COMPONENTS ===

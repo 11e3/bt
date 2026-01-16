@@ -61,15 +61,23 @@ class SimpleDataProvider(DataProvider):
         return self._data[symbol].iloc[idx]
 
     def get_bars(self, symbol: str, count: int) -> Any | None:
-        """Get multiple bars ending before current position (prevents look-ahead bias)."""
+        """Get multiple bars including current bar.
+
+        Args:
+            symbol: Symbol to get bars for
+            count: Number of bars to retrieve
+
+        Returns:
+            DataFrame with count bars ending at current position, or None if not enough data
+        """
         if symbol not in self._data:
             return None
 
-        # Exclude current bar to prevent look-ahead bias
-        end_idx = self._current_bar[symbol]
+        # Include current bar (end_idx is exclusive in iloc, so +1)
+        end_idx = self._current_bar[symbol] + 1
         start_idx = max(0, end_idx - count)
 
-        if start_idx >= end_idx:
+        if end_idx - start_idx < 1:
             return None
 
         return self._data[symbol].iloc[start_idx:end_idx]
@@ -95,9 +103,6 @@ class SimpleDataProvider(DataProvider):
         if bar is not None:
             return to_datetime(bar["datetime"], "current_datetime")
         return None
-
-        dt = bar["datetime"]
-        return to_datetime(dt)
 
     @property
     def cache_hit_rate(self) -> float:
@@ -189,22 +194,23 @@ class SimplePortfolio(Portfolio):
         """Execute buy order."""
         cash = Decimal(self.cash)
         current_price = Decimal(str(price))
+        qty = Decimal(str(quantity))
 
         # Apply slippage (price increases when buying)
         execution_price = current_price * (Decimal("1") + self.slippage)
 
         # Calculate total cost with fees
         cost_multiplier = (Decimal("1") + self.fee) * (Decimal("1") + self.slippage)
-        total_cost = execution_price * quantity * cost_multiplier
+        total_cost = execution_price * qty * cost_multiplier
 
         if total_cost > cash:
             raise ValueError(f"Insufficient cash: need {total_cost}, have {cash}")
 
         # Update cash and position
         self._cash = Amount(cash - total_cost)
-        self.add_to_position(symbol, quantity, Price(execution_price), date)
+        self.add_to_position(symbol, Quantity(qty), Price(execution_price), date)
 
-        logger.debug(f"Buy: {symbol} @ {price} x {quantity}")
+        logger.debug(f"Buy: {symbol} @ {price} x {qty}")
 
     def sell(self, symbol: str, price: Price, quantity: Quantity, date: datetime) -> None:
         """Execute sell order."""
@@ -214,12 +220,15 @@ class SimplePortfolio(Portfolio):
             logger.warning(f"Attempted to sell non-existent position: {symbol}")
             return
 
+        current_price = Decimal(str(price))
+        qty = Decimal(str(quantity))
+
         # Apply slippage (price decreases when selling)
-        execution_price = price * (Decimal("1") - self.slippage)
+        execution_price = current_price * (Decimal("1") - self.slippage)
 
         # Calculate proceeds after fees
         proceeds = (
-            execution_price * quantity * (Decimal("1") - self.fee) * (Decimal("1") - self.slippage)
+            execution_price * qty * (Decimal("1") - self.fee) * (Decimal("1") - self.slippage)
         )
 
         # Update cash and record trade
@@ -229,7 +238,7 @@ class SimplePortfolio(Portfolio):
         from bt.domain.models import Trade
 
         # Calculate PnL and return
-        pnl_amount = (execution_price - position.entry_price) * quantity
+        pnl_amount = (execution_price - position.entry_price) * qty
         return_pct = ((execution_price - position.entry_price) / position.entry_price) * Decimal(
             "100"
         )
@@ -240,16 +249,16 @@ class SimplePortfolio(Portfolio):
             exit_date=date,
             entry_price=position.entry_price,
             exit_price=Price(execution_price),
-            quantity=quantity,
+            quantity=Quantity(qty),
             pnl=Amount(pnl_amount),
             return_pct=Percentage(return_pct),
         )
         self._trades.append(trade)
 
         # Update position
-        position.quantity = position.quantity - quantity
+        position.quantity = position.quantity - qty
 
-        logger.debug(f"Sell: {symbol} @ {price} x {quantity}")
+        logger.debug(f"Sell: {symbol} @ {price} x {qty}")
 
     @property
     def value(self) -> Amount:

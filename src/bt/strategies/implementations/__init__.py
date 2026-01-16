@@ -112,11 +112,12 @@ class VolatilityBreakoutStrategy(BaseStrategy):
         """Get VBO buy conditions."""
         lookback = self.config.get("lookback", 5)
         multiplier = self.config.get("multiplier", 2)
+        k_factor = self.config.get("k_factor", 0.5)
 
         return {
             "no_position": create_condition("no_open_position"),
             "breakout": create_condition(
-                "volatility_breakout", k_factor=self.config.get("k_factor", 0.5)
+                "volatility_breakout", k_factor=k_factor, lookback=lookback
             ),
             "trend_short": create_condition("price_above_sma", lookback=lookback),
             "trend_long": create_condition("price_above_sma", lookback=lookback * multiplier),
@@ -134,7 +135,11 @@ class VolatilityBreakoutStrategy(BaseStrategy):
 
     def get_buy_price_func(self) -> IPricing:
         """Get VBO buy price function."""
-        return create_pricing("volatility_breakout", lookback=self.config.get("lookback", 5))
+        return create_pricing(
+            "volatility_breakout",
+            lookback=self.config.get("lookback", 5),
+            k_factor=self.config.get("k_factor", 0.5),
+        )
 
     def get_allocation_func(self) -> IAllocation:
         """Get momentum allocation function."""
