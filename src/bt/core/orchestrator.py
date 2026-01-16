@@ -178,13 +178,12 @@ class BacktestOrchestrator:
                     sell_price = strategy.get_sell_price_func()(self, symbol)
                     quantity = position.quantity
 
+                    # execute_sell_order already calls portfolio.sell() internally
                     self.executor.execute_sell_order(
                         symbol, sell_price, quantity, current_date, bar
                     )
 
                     self.tracker.record_trade(symbol, current_date, "sell", sell_price, quantity)
-
-                    self.portfolio.sell(symbol, sell_price, quantity, current_date)
                     self.tracker.update_equity(current_date, current_prices)
 
         # Check buy conditions
@@ -203,11 +202,10 @@ class BacktestOrchestrator:
                     if quantity <= 0:
                         return
 
+                    # execute_buy_order already calls portfolio.buy() internally
                     self.executor.execute_buy_order(symbol, buy_price, quantity, current_date, bar)
 
                     self.tracker.record_trade(symbol, current_date, "buy", buy_price, quantity)
-
-                    self.portfolio.buy(symbol, buy_price, quantity, current_date)
                     self.tracker.update_equity(current_date, current_prices)
 
     def get_bar(self, symbol: str):

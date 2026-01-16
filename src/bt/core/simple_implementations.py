@@ -190,8 +190,12 @@ class SimplePortfolio(Portfolio):
             position.quantity = total_quantity
             position.entry_price = Price(avg_price)
 
-    def buy(self, symbol: str, price: Price, quantity: Quantity, date: datetime) -> None:
-        """Execute buy order."""
+    def buy(self, symbol: str, price: Price, quantity: Quantity, date: datetime) -> bool:
+        """Execute buy order.
+
+        Returns:
+            True if order executed successfully, False if insufficient funds
+        """
         cash = Decimal(self.cash)
         current_price = Decimal(str(price))
         qty = Decimal(str(quantity))
@@ -204,21 +208,27 @@ class SimplePortfolio(Portfolio):
         total_cost = execution_price * qty * cost_multiplier
 
         if total_cost > cash:
-            raise ValueError(f"Insufficient cash: need {total_cost}, have {cash}")
+            logger.warning(f"Insufficient cash for {symbol}: need {total_cost}, have {cash}")
+            return False
 
         # Update cash and position
         self._cash = Amount(cash - total_cost)
         self.add_to_position(symbol, Quantity(qty), Price(execution_price), date)
 
         logger.debug(f"Buy: {symbol} @ {price} x {qty}")
+        return True
 
-    def sell(self, symbol: str, price: Price, quantity: Quantity, date: datetime) -> None:
-        """Execute sell order."""
+    def sell(self, symbol: str, price: Price, quantity: Quantity, date: datetime) -> bool:
+        """Execute sell order.
+
+        Returns:
+            True if order executed successfully, False if no position
+        """
         position = self.get_position(symbol)
 
         if not position.is_open:
             logger.warning(f"Attempted to sell non-existent position: {symbol}")
-            return
+            return False
 
         current_price = Decimal(str(price))
         qty = Decimal(str(quantity))
@@ -259,6 +269,7 @@ class SimplePortfolio(Portfolio):
         position.quantity = position.quantity - qty
 
         logger.debug(f"Sell: {symbol} @ {price} x {qty}")
+        return True
 
     @property
     def value(self) -> Amount:
