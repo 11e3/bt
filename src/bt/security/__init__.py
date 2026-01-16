@@ -51,7 +51,7 @@ class SecurityConfig:
     # Data validation
     numeric_bounds: dict[str, dict[str, float]] = field(
         default_factory=lambda: {
-            "price": {"min": 0.00000001, "max": 1_000_000},
+            "price": {"min": 0.00000001, "max": 1_000_000_000_000},  # 1 trillion (KRW)
             "volume": {"min": 0, "max": 1_000_000_000},
             "returns": {"min": -1.0, "max": 10.0},  # Allow up to 1000% returns
             "fee_rate": {"min": 0.0, "max": 0.1},  # Max 10% fee

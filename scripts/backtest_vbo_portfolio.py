@@ -133,15 +133,24 @@ def backtest_portfolio_framework(
         config=config,
     )
 
-    # Extract metrics
-    performance = results.get("performance", {})
-    equity_curve = results.get("equity_curve", [])
-
-    total_return = performance.get("total_return", 0)
-    cagr = performance.get("cagr", 0)
-    mdd = performance.get("max_drawdown", 0)
-    sharpe = performance.get("sharpe_ratio", 0)
-    final_equity = equity_curve[-1] if equity_curve else INITIAL_CAPITAL
+    # Extract metrics (handle both Pydantic model and dict)
+    performance = results.get("performance")
+    if hasattr(performance, "total_return"):
+        # Pydantic PerformanceMetrics model
+        total_return = float(performance.total_return)
+        cagr = float(performance.cagr)
+        mdd = float(performance.mdd)
+        sharpe = float(performance.sortino_ratio)
+        final_equity = float(performance.final_equity)
+    elif isinstance(performance, dict):
+        total_return = performance.get("total_return", 0)
+        cagr = performance.get("cagr", 0)
+        mdd = performance.get("mdd", 0)
+        sharpe = performance.get("sortino_ratio", 0)
+        final_equity = performance.get("final_equity", INITIAL_CAPITAL)
+    else:
+        total_return = cagr = mdd = sharpe = 0
+        final_equity = INITIAL_CAPITAL
 
     return {
         "symbols": symbols,

@@ -87,11 +87,20 @@ class BacktestRunner:
         if config:
             results["configuration"] = config
 
+        # Extract total_return from performance (handle both dict and Pydantic model)
+        performance = results.get("performance")
+        if hasattr(performance, "total_return"):
+            total_return = float(performance.total_return)
+        elif isinstance(performance, dict):
+            total_return = performance.get("total_return", 0)
+        else:
+            total_return = 0
+
         self.logger.info(
             "Backtest completed",
             extra={
                 "trades": len(results.get("trades", [])),
-                "total_return": results.get("performance", {}).get("total_return", 0),
+                "total_return": total_return,
             },
         )
 
