@@ -20,8 +20,7 @@ from bt.core.base import (
 )
 
 # Data abstraction layer
-from bt.data.storage import DataManager, get_data_manager, retrieve_data, store_data
-
+# from bt.data.storage import DataManager, get_data_manager, retrieve_data, store_data
 # Domain models and types
 from bt.domain.models import BacktestConfig, PerformanceMetrics, Position, Trade
 from bt.domain.types import Amount, Fee, Percentage, Price, Quantity
