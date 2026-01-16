@@ -149,9 +149,13 @@ class BacktestOrchestrator:
                     if current_date is None:
                         current_date = bar["datetime"]
 
+            # Skip if no valid data for this iteration
+            if current_date is None:
+                self.data_provider.next_bar()
+                continue
+
             # Update performance tracking
-            if current_date:
-                self.tracker.update_equity(current_date, current_prices)
+            self.tracker.update_equity(current_date, current_prices)
 
             # Process each symbol
             for symbol in symbols:
@@ -391,8 +395,9 @@ class PerformanceTracker:
     def initialize(self, symbols: list[str], initial_value: Amount) -> None:
         """Initialize tracking with starting values."""
         self._initial_value = float(initial_value)
-        # Don't add initial date here - it will be added on first update_equity call
-        self._equity_values.append(float(initial_value))
+        # Initialize empty lists - first update_equity call will add initial state
+        self._equity_values = []
+        self._dates = []
 
         self.logger.info(
             "Performance tracking initialized",

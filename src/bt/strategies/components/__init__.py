@@ -37,6 +37,10 @@ class BaseAllocation(IStrategyComponent):
         """Get allocation description."""
         return f"{self.__class__.__name__}({self.config})"
 
+    def calculate_quantity(self, engine: "IBacktestEngine", symbol: str, price: float) -> float:
+        """IAllocation protocol method - delegates to __call__."""
+        return self(engine, symbol, price)
+
 
 class AllInAllocation(BaseAllocation):
     """Buy with all available cash accounting for costs."""
@@ -148,6 +152,14 @@ class BaseCondition(IStrategyComponent):
         """Validate condition configuration."""
         return True
 
+    def get_description(self) -> str:
+        """Get condition description."""
+        return f"{self.__class__.__name__}"
+
+    def evaluate(self, engine: "IBacktestEngine", symbol: str) -> bool:
+        """ICondition protocol method - delegates to __call__."""
+        return self(engine, symbol)
+
 
 class NoOpenPositionCondition(BaseCondition):
     """True when no open position exists."""
@@ -224,15 +236,27 @@ class VolatilityBreakoutCondition(BaseCondition):
         return last_close + noise_adjusted_range * self.k_factor
 
     def _calculate_noise_ratio(self, prices: pd.Series) -> float:
-        """Calculate noise ratio for volatility adjustment."""
+        """Calculate noise ratio for volatility adjustment.
+
+        Noise ratio = sum of absolute daily changes / total price range
+        Higher value indicates choppy/noisy market, lower indicates trending.
+        """
         if len(prices) < 2:
             return 1.0
 
-        # Price changes
+        # Sum of absolute daily changes
         changes = prices.diff().abs()
-        avg_change = changes.mean()
+        total_abs_changes = changes.sum()
 
-        return 1.0 if avg_change == 0 else 1.0
+        # Total price range
+        total_range = abs(prices.iloc[-1] - prices.iloc[0])
+
+        if total_range == 0:
+            return 1.0
+
+        # Calculate and clamp to reasonable range
+        noise_ratio = total_abs_changes / total_range
+        return float(min(max(noise_ratio, 0.1), 2.0))
 
 
 # === PRICING COMPONENTS ===
@@ -244,6 +268,14 @@ class BasePricing(IStrategyComponent):
     def validate(self) -> bool:
         """Validate pricing configuration."""
         return True
+
+    def get_description(self) -> str:
+        """Get pricing description."""
+        return f"{self.__class__.__name__}"
+
+    def calculate_price(self, engine: "IBacktestEngine", symbol: str) -> float:
+        """IPricing protocol method - delegates to __call__."""
+        return self(engine, symbol)
 
 
 class CurrentClosePricing(BasePricing):

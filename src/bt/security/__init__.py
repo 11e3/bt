@@ -8,18 +8,15 @@ Provides comprehensive security features including:
 - Safe defaults and validation rules
 """
 
-import hashlib
 import logging
 import os
 import re
-import secrets
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, Field, validator
 
 from ..exceptions import SecurityError
 from ..interfaces.core import ValidationError
@@ -518,7 +515,7 @@ class SecurityScanner:
 
 
 # Global security instance
-_security_instance: Optional["SecurityManager"] = None
+_security_instance: "SecurityManager | None" = None
 
 
 class SecurityManager:

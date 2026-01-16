@@ -99,8 +99,12 @@ class Portfolio(ABC):
         price: Price,
         quantity: Quantity,
         date: datetime,
-    ) -> None:
-        """Buy shares."""
+    ) -> bool:
+        """Buy shares.
+
+        Returns:
+            True if order executed successfully, False otherwise
+        """
         ...
 
     @abstractmethod
@@ -110,8 +114,12 @@ class Portfolio(ABC):
         price: Price,
         quantity: Quantity,
         date: datetime,
-    ) -> None:
-        """Sell shares."""
+    ) -> bool:
+        """Sell shares.
+
+        Returns:
+            True if order executed successfully, False otherwise
+        """
         ...
 
     @abstractmethod

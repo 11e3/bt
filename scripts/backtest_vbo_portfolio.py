@@ -175,7 +175,7 @@ def calculate_indicators(df: pd.DataFrame, btc_df: pd.DataFrame) -> pd.DataFrame
     # Align BTC data with coin data using datetime
     df = df.set_index("datetime")
     btc_df = btc_df.set_index("datetime")
-    btc_aligned = btc_df.reindex(df.index, method="ffill")
+    btc_aligned = btc_df.reindex(df.index).ffill()
 
     # Calculate coin MA5
     df["ma5"] = df["close"].rolling(window=MA_SHORT).mean()

@@ -212,9 +212,8 @@ class SimplePortfolio(Portfolio):
         # Apply slippage (price increases when buying)
         execution_price = current_price * (Decimal("1") + self.slippage)
 
-        # Calculate total cost with fees
-        cost_multiplier = (Decimal("1") + self.fee) * (Decimal("1") + self.slippage)
-        total_cost = execution_price * qty * cost_multiplier
+        # Calculate total cost with fees (slippage already applied to execution_price)
+        total_cost = execution_price * qty * (Decimal("1") + self.fee)
 
         if total_cost > cash:
             logger.warning(f"Insufficient cash for {symbol}: need {total_cost}, have {cash}")
@@ -245,10 +244,8 @@ class SimplePortfolio(Portfolio):
         # Apply slippage (price decreases when selling)
         execution_price = current_price * (Decimal("1") - self.slippage)
 
-        # Calculate proceeds after fees
-        proceeds = (
-            execution_price * qty * (Decimal("1") - self.fee) * (Decimal("1") - self.slippage)
-        )
+        # Calculate proceeds after fees (slippage already applied to execution_price)
+        proceeds = execution_price * qty * (Decimal("1") - self.fee)
 
         # Update cash and record trade
         self._cash = Amount(self._cash + proceeds)
@@ -274,23 +271,28 @@ class SimplePortfolio(Portfolio):
         )
         self._trades.append(trade)
 
-        # Update position
+        # Update position - ensure quantity doesn't go negative
         position.quantity = position.quantity - qty
+        if position.quantity <= Decimal("0"):
+            position.quantity = Quantity(Decimal("0"))
 
         logger.debug(f"Sell: {symbol} @ {price} x {qty}")
         return True
 
     @property
     def value(self) -> Amount:
-        """Total portfolio value."""
+        """Total portfolio value (cash + positions at entry price).
+
+        Note: For accurate valuation with current market prices,
+        use update_equity() which tracks the equity curve.
+        """
         total = self._cash
 
-        # Add value of open positions
+        # Add value of open positions using entry price as estimate
         for _symbol, position in self._positions.items():
             if position.is_open:
-                # Simple fallback - use 0 if no price available
-                current_price = Decimal("0")
-                total += current_price * position.quantity
+                # Use entry price as conservative estimate
+                total += position.entry_price * position.quantity
 
         return Amount(total)
 

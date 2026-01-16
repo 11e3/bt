@@ -93,16 +93,27 @@ def validate_range(
 
 
 def validate_percentage(value: Any, field_name: str = "value") -> Decimal:
-    """Validate value is a valid percentage (0-100)."""
-    decimal_value = safe_decimal(value, field_name)
-    return decimal_value * Decimal("0.01")
+    """Validate value is a valid percentage (0-100).
 
-    if value < Decimal("0"):
+    Args:
+        value: Percentage value (0-100 scale)
+        field_name: Name for error messages
+
+    Returns:
+        Decimal value converted to decimal scale (0-1)
+
+    Raises:
+        ValidationError: If value is negative or greater than 100
+    """
+    decimal_value = safe_decimal(value, field_name)
+
+    if decimal_value < Decimal("0"):
         raise ValidationError(f"{field_name} cannot be negative")
 
-    if value > Decimal("1"):
+    if decimal_value > Decimal("100"):
         raise ValidationError(f"{field_name} cannot be greater than 100%")
-    return None
+
+    return decimal_value * Decimal("0.01")
 
 
 def validate_positive(value: Any, field_name: str = "value") -> bool:

@@ -46,6 +46,10 @@ class IDataProvider(Protocol):
         """Set current bar index."""
         ...
 
+    def set_current_bars_to_start(self) -> None:
+        """Reset all symbols to the start of their data."""
+        ...
+
     def get_prices_batch(self, symbols: list[str]) -> dict[str, float]:
         """Get current prices for multiple symbols."""
         ...

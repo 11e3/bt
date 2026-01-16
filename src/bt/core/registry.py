@@ -5,6 +5,7 @@ and metadata management.
 """
 
 from dataclasses import dataclass
+from typing import Any
 
 from bt.exceptions import StrategyError
 from bt.interfaces.strategy_types import IStrategy
@@ -27,7 +28,7 @@ class StrategyInfo:
     version: str = "1.0.0"
     category: str = "General"
     tags: list[str] = None
-    parameters: dict[str, any] = None
+    parameters: dict[str, Any] = None
     examples: list[str] = None
     dependencies: list[str] = None
     performance_notes: str = None
@@ -188,6 +189,17 @@ class StrategyRegistry:
         registration = self._strategies.get(name)
         return registration.info if registration else None
 
+    def is_registered(self, name: str) -> bool:
+        """Check if a strategy is already registered.
+
+        Args:
+            name: Strategy name to check
+
+        Returns:
+            True if strategy is registered, False otherwise
+        """
+        return name in self._strategies
+
     def get_available_factories(self) -> list[str]:
         """Get list of available factory names."""
         return list(self._factories.keys())
@@ -196,7 +208,7 @@ class StrategyRegistry:
         """Get list of available strategy categories."""
         return sorted(self._categories.keys())
 
-    def validate_strategy_config(self, name: str, config: dict[str, any]) -> list[str]:
+    def validate_strategy_config(self, name: str, config: dict[str, Any]) -> list[str]:
         """Validate strategy configuration using strategy's own validation.
 
         Args:
@@ -325,12 +337,12 @@ def register_strategy(
 class ConfigurableStrategyFactory:
     """Factory that creates strategies with configuration validation."""
 
-    def __init__(self, default_config: dict[str, any] = None):
+    def __init__(self, default_config: dict[str, Any] = None):
         """Initialize factory with default configuration."""
         self.default_config = default_config or {}
 
     def create_strategy(
-        self, strategy_name: str, config_overrides: dict[str, any] = None
+        self, strategy_name: str, config_overrides: dict[str, Any] = None
     ) -> IStrategy:
         """Create strategy instance with validation.
 
@@ -362,7 +374,7 @@ class ConfigurableStrategyFactory:
 # Metadata and introspection utilities
 
 
-def get_all_strategy_metadata() -> dict[str, dict[str, any]]:
+def get_all_strategy_metadata() -> dict[str, dict[str, Any]]:
     """Get metadata for all registered strategies."""
     registry = get_strategy_registry()
     metadata = {}

@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Any
 
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from bt.exceptions import ConfigurationError
 
@@ -55,10 +55,11 @@ class BacktestBaseConfig(BaseSettings):
 
     log_file: str | None = Field(default=None, description="Log file path")
 
-    class Config:
-        env_file = ".env"
-        env_prefix = "BT_"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_prefix="BT_",
+        case_sensitive=False,
+    )
 
 
 class StrategyConfig(BaseSettings):
@@ -99,9 +100,10 @@ class StrategyConfig(BaseSettings):
         default=0.5, ge=0.1, le=1.0, description="Maximum allocation percentage"
     )
 
-    class Config:
-        env_prefix = "BT_STRATEGY_"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_prefix="BT_STRATEGY_",
+        case_sensitive=False,
+    )
 
 
 class BacktestConfig(BaseSettings):
@@ -145,9 +147,10 @@ class BacktestConfig(BaseSettings):
 
     skip_invalid_trades: bool = Field(default=False, description="Skip trades with invalid data")
 
-    class Config:
-        env_prefix = "BT_"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_prefix="BT_",
+        case_sensitive=False,
+    )
 
 
 class ReportingConfig(BaseSettings):
@@ -176,9 +179,10 @@ class ReportingConfig(BaseSettings):
         default=0.05, ge=0.01, le=0.1, description="Value at Risk confidence level (0.05 = 95% VaR)"
     )
 
-    class Config:
-        env_prefix = "BT_REPORTING_"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_prefix="BT_REPORTING_",
+        case_sensitive=False,
+    )
 
 
 class ConfigurationManager:
@@ -196,15 +200,12 @@ class ConfigurationManager:
 
     def _load_configs(self) -> None:
         """Load all configuration objects."""
-        env = self._get_environment()
-
-        # Load base configuration first
-        self._configs["base"] = BacktestBaseConfig(_env_file=env)
-
-        # Load environment-specific configurations
-        self._configs["strategy"] = StrategyConfig(_env_file=env)
-        self._configs["backtest"] = BacktestConfig(_env_file=env)
-        self._configs["reporting"] = ReportingConfig(_env_file=env)
+        # Load all configuration objects
+        # Environment is determined via env vars, not constructor params
+        self._configs["base"] = BacktestBaseConfig()
+        self._configs["strategy"] = StrategyConfig()
+        self._configs["backtest"] = BacktestConfig()
+        self._configs["reporting"] = ReportingConfig()
 
     def _get_environment(self) -> str:
         """Get current environment."""
@@ -284,7 +285,7 @@ class ConfigurationManager:
             try:
                 # Pydantic automatically validates on instantiation
                 # Trigger validation by accessing a field
-                config.dict()
+                config.model_dump()
             except Exception as e:
                 errors.append(f"Configuration validation failed for {config_name}: {e}")
 
@@ -305,7 +306,7 @@ class ConfigurationManager:
 
     def get_all_configs_dict(self) -> dict[str, dict[str, Any]]:
         """Get all configurations as nested dictionary."""
-        return {name: config.dict() for name, config in self._configs.items()}
+        return {name: config.model_dump() for name, config in self._configs.items()}
 
     def validate_backtest_parameters(self, params: dict[str, Any]) -> list[str]:
         """Validate backtest parameters against current configuration."""
