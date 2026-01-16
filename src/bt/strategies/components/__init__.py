@@ -256,6 +256,16 @@ class CurrentClosePricing(BasePricing):
         return float(bar["close"])
 
 
+class CurrentOpenPricing(BasePricing):
+    """Uses current open price for execution."""
+
+    def __call__(self, engine: "IBacktestEngine", symbol: str) -> float:
+        bar = engine.get_bar(symbol)
+        if bar is None:
+            return 0.0
+        return float(bar["open"])
+
+
 class VolatilityBreakoutPricing(BasePricing):
     """VBO pricing - calculates breakout buy price."""
 
@@ -358,6 +368,194 @@ class MomentumIndicator(BaseIndicator):
         return (current_price / old_price - 1) if old_price > 0 else -999.0
 
 
+# === VBO PORTFOLIO COMPONENTS ===
+
+
+class VBOPortfolioBuyCondition(BaseCondition):
+    """VBO Portfolio buy condition with BTC market filter.
+
+    Buy signal when:
+    - Current high >= target price (open + range * noise_ratio)
+    - Previous close > Previous MA5
+    - Previous BTC close > Previous BTC MA20
+    """
+
+    def __init__(
+        self,
+        ma_short: int = 5,
+        btc_ma: int = 20,
+        noise_ratio: float = 0.5,
+        btc_symbol: str = "BTC",
+        **_kwargs,
+    ):
+        self.ma_short = ma_short
+        self.btc_ma = btc_ma
+        self.noise_ratio = noise_ratio
+        self.btc_symbol = btc_symbol
+
+    def __call__(self, engine: "IBacktestEngine", symbol: str) -> bool:
+        # Get current bar
+        current_bar = engine.get_bar(symbol)
+        if current_bar is None:
+            return False
+
+        # Get historical bars for this symbol
+        bars = engine.get_bars(symbol, self.ma_short + 2)
+        if bars is None or len(bars) < self.ma_short + 2:
+            return False
+
+        # Calculate previous values (excluding current bar)
+        prev_close = float(bars["close"].iloc[-2])
+        prev_high = float(bars["high"].iloc[-2])
+        prev_low = float(bars["low"].iloc[-2])
+
+        # Calculate MA5 on previous closes (excluding current bar)
+        close_series = bars["close"].iloc[:-1]
+        if len(close_series) < self.ma_short:
+            return False
+        prev_ma5 = float(close_series.iloc[-self.ma_short :].mean())
+
+        # Check coin trend condition: prev_close > prev_ma5
+        if prev_close <= prev_ma5:
+            return False
+
+        # Get BTC data for market filter
+        btc_bars = engine.get_bars(self.btc_symbol, self.btc_ma + 2)
+        if btc_bars is None or len(btc_bars) < self.btc_ma + 2:
+            return False
+
+        # Calculate BTC previous values
+        btc_close_series = btc_bars["close"].iloc[:-1]
+        if len(btc_close_series) < self.btc_ma:
+            return False
+        prev_btc_close = float(btc_close_series.iloc[-1])
+        prev_btc_ma20 = float(btc_close_series.iloc[-self.btc_ma :].mean())
+
+        # Check BTC market condition: prev_btc_close > prev_btc_ma20
+        if prev_btc_close <= prev_btc_ma20:
+            return False
+
+        # Calculate target price: open + (prev_high - prev_low) * noise_ratio
+        current_open = float(current_bar["open"])
+        target_price = current_open + (prev_high - prev_low) * self.noise_ratio
+
+        # Check breakout condition: current high >= target price
+        current_high = float(current_bar["high"])
+        return current_high >= target_price
+
+
+class VBOPortfolioSellCondition(BaseCondition):
+    """VBO Portfolio sell condition.
+
+    Sell signal when:
+    - Previous close < Previous MA5 OR
+    - Previous BTC close < Previous BTC MA20
+    """
+
+    def __init__(
+        self,
+        ma_short: int = 5,
+        btc_ma: int = 20,
+        btc_symbol: str = "BTC",
+        **_kwargs,
+    ):
+        self.ma_short = ma_short
+        self.btc_ma = btc_ma
+        self.btc_symbol = btc_symbol
+
+    def __call__(self, engine: "IBacktestEngine", symbol: str) -> bool:
+        # Get historical bars for this symbol
+        bars = engine.get_bars(symbol, self.ma_short + 2)
+        if bars is None or len(bars) < self.ma_short + 2:
+            return False
+
+        # Calculate previous values (excluding current bar)
+        close_series = bars["close"].iloc[:-1]
+        if len(close_series) < self.ma_short:
+            return False
+        prev_close = float(close_series.iloc[-1])
+        prev_ma5 = float(close_series.iloc[-self.ma_short :].mean())
+
+        # Check coin trend exit condition
+        coin_sell_signal = prev_close < prev_ma5
+
+        # Get BTC data for market filter
+        btc_bars = engine.get_bars(self.btc_symbol, self.btc_ma + 2)
+        if btc_bars is None or len(btc_bars) < self.btc_ma + 2:
+            return coin_sell_signal  # If no BTC data, rely on coin signal only
+
+        # Calculate BTC previous values
+        btc_close_series = btc_bars["close"].iloc[:-1]
+        if len(btc_close_series) < self.btc_ma:
+            return coin_sell_signal
+        prev_btc_close = float(btc_close_series.iloc[-1])
+        prev_btc_ma20 = float(btc_close_series.iloc[-self.btc_ma :].mean())
+
+        # Check BTC market exit condition
+        btc_sell_signal = prev_btc_close < prev_btc_ma20
+
+        # Sell if either condition is met
+        return coin_sell_signal or btc_sell_signal
+
+
+class VBOPortfolioPricing(BasePricing):
+    """VBO Portfolio pricing - calculates target buy price.
+
+    Target price = Open + (Prev High - Prev Low) * noise_ratio
+    """
+
+    def __init__(self, noise_ratio: float = 0.5, **_kwargs):
+        self.noise_ratio = noise_ratio
+
+    def __call__(self, engine: "IBacktestEngine", symbol: str) -> float:
+        current_bar = engine.get_bar(symbol)
+        if current_bar is None:
+            return 0.0
+
+        # Get previous bar for range calculation
+        bars = engine.get_bars(symbol, 2)
+        if bars is None or len(bars) < 2:
+            return float(current_bar["close"])
+
+        prev_high = float(bars["high"].iloc[-2])
+        prev_low = float(bars["low"].iloc[-2])
+        current_open = float(current_bar["open"])
+
+        # Target price = open + (prev_high - prev_low) * noise_ratio
+        return current_open + (prev_high - prev_low) * self.noise_ratio
+
+
+class VBOPortfolioAllocation(BaseAllocation):
+    """VBO Portfolio allocation - equal weight among all portfolio coins (1/N).
+
+    Allocates total_equity / n_strategies to each coin.
+    """
+
+    def __call__(self, engine: "IBacktestEngine", _symbol: str, price: float) -> float:
+        if price <= 0:
+            return 0.0
+
+        # Get number of symbols (n_strategies)
+        n_strategies = len(engine.data_provider.symbols)
+        if n_strategies == 0:
+            return 0.0
+
+        # Calculate target allocation: total_equity / n_strategies
+        total_equity = float(engine.portfolio.value)
+        target_alloc = total_equity / n_strategies
+
+        # Limit to available cash
+        cash = float(engine.portfolio.cash)
+        buy_value = min(target_alloc, cash * 0.99)  # 99% safety buffer
+
+        if buy_value <= 0:
+            return 0.0
+
+        # Account for fees and slippage
+        cost_multiplier = 1 + float(engine.config.fee) + float(engine.config.slippage)
+        return buy_value / (price * cost_multiplier)
+
+
 # === FACTORY FUNCTIONS ===
 
 
@@ -369,6 +567,7 @@ def create_allocation(allocation_type: str, **config) -> IAllocation:
         "equal_weight": EqualWeightAllocation,
         "equal_weight_momentum": MomentumAllocation,
         "volatility_breakout": VolatilityBreakoutAllocation,
+        "vbo_portfolio": VBOPortfolioAllocation,
     }
 
     if allocation_type not in allocations:
@@ -384,6 +583,8 @@ def create_condition(condition_type: str, **config) -> ICondition:
         "no_open_position": NoOpenPositionCondition,
         "price_above_sma": PriceAboveSMACondition,
         "volatility_breakout": VolatilityBreakoutCondition,
+        "vbo_portfolio_buy": VBOPortfolioBuyCondition,
+        "vbo_portfolio_sell": VBOPortfolioSellCondition,
     }
 
     if condition_type not in conditions:
@@ -397,7 +598,9 @@ def create_pricing(pricing_type: str, **config) -> IPricing:
 
     pricing_strategies = {
         "current_close": CurrentClosePricing,
+        "current_open": CurrentOpenPricing,
         "volatility_breakout": VolatilityBreakoutPricing,
+        "vbo_portfolio": VBOPortfolioPricing,
     }
 
     if pricing_type not in pricing_strategies:

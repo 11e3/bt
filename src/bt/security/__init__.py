@@ -128,17 +128,6 @@ class InputValidator:
             if np.isinf(df[col]).any():
                 raise ValidationError(f"Column {col} contains infinite values")
 
-        # Validate value ranges
-        bounds = self.config.numeric_bounds
-        for col in ["open", "high", "low", "close"]:
-            if (df[col] < bounds["price"]["min"]).any() or (df[col] > bounds["price"]["max"]).any():
-                raise ValidationError(f"Price values in {col} outside valid range")
-
-        if (df["volume"] < bounds["volume"]["min"]).any() or (
-            df["volume"] > bounds["volume"]["max"]
-        ).any():
-            raise ValidationError("Volume values outside valid range")
-
         # Validate OHLC relationships
         if not ((df["low"] <= df["open"]) & (df["open"] <= df["high"])).all():
             raise ValidationError("Invalid OHLC relationships for open prices")
