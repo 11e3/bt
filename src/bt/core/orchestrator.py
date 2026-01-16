@@ -433,25 +433,40 @@ class PerformanceTracker:
         self, symbol: str, date: datetime, action: str, price: Amount, quantity: Amount
     ) -> None:
         """Record a trade for performance tracking."""
-        self._trades.append(
-            {
-                "symbol": symbol,
-                "date": date,
-                "action": action,
-                "price": float(price),
-                "quantity": float(quantity),
-            }
-        )
+        if action == "sell":
+            # Find matching buy trade for this symbol
+            buy_trades = [t for t in self._trades if t["symbol"] == symbol and t["action"] == "buy"]
+            if buy_trades:
+                last_buy = buy_trades[-1]
+                entry_price = last_buy["price"]
+                exit_price = float(price)
+                qty = float(quantity)
+                pnl = (exit_price - entry_price) * qty
+                return_pct = ((exit_price / entry_price) - 1) * 100 if entry_price > 0 else 0
 
-        self.logger.debug(
-            f"Trade recorded: {action} {symbol}",
-            extra={
-                "symbol": symbol,
-                "action": action,
-                "price": float(price),
-                "quantity": float(quantity),
-            },
-        )
+                self._trades.append(
+                    {
+                        "symbol": symbol,
+                        "entry_date": last_buy["date"],
+                        "exit_date": date,
+                        "entry_price": entry_price,
+                        "exit_price": exit_price,
+                        "quantity": qty,
+                        "pnl": pnl,
+                        "return_pct": return_pct,
+                    }
+                )
+        else:
+            # Store buy for later matching
+            self._trades.append(
+                {
+                    "symbol": symbol,
+                    "date": date,
+                    "action": action,
+                    "price": float(price),
+                    "quantity": float(quantity),
+                }
+            )
 
     def get_all_trades(self) -> list[dict[str, any]]:
         """Get all recorded trades."""
