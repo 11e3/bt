@@ -550,10 +550,9 @@ class PerformanceTracker:
 
     def set_initial_positions(self, initial_value: Amount) -> None:
         """Set initial positions for performance tracking."""
-        # This would be used for more complex tracking
-        # For now, just record as if we started with this amount
+        # Only set initial value - first equity point will be added by update_equity
+        # to ensure dates and equity_values stay in sync
         self._initial_value = float(initial_value)
-        self._equity_values = [float(initial_value)]
 
     def get_initial_value(self) -> float:
         """Get initial portfolio value."""
