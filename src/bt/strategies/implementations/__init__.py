@@ -149,6 +149,12 @@ class VolatilityBreakoutStrategy(BaseStrategy):
             mom_lookback=self.config.get("mom_lookback", 20),
         )
 
+    def get_sell_price_func(self) -> IPricing:
+        """Get sell price function (open price for next-day exit)."""
+        from bt.strategies.components import CurrentOpenPricing
+
+        return CurrentOpenPricing()
+
 
 class MomentumStrategy(BaseStrategy):
     """Pure momentum strategy with equal-weight allocation."""
