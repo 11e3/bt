@@ -144,6 +144,7 @@ class PerformanceMetrics(BaseModel):
     total_return: Percentage = Field(description="Total return percentage")
     cagr: Percentage = Field(description="Compound Annual Growth Rate")
     mdd: Percentage = Field(description="Maximum Drawdown (negative)")
+    sharpe_ratio: Decimal = Field(default=Decimal("0"), description="Sharpe ratio")
     sortino_ratio: Decimal = Field(description="Sortino ratio")
     win_rate: Percentage = Field(ge=0, le=100, description="Win rate percentage")
     profit_factor: Decimal = Field(ge=0, description="Profit factor")

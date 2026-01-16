@@ -148,6 +148,7 @@ class Portfolio:
         self,
         symbol: str,
         price: Price,
+        quantity: Quantity,
         date: datetime,
     ) -> bool:
         """Execute sell order with fees and slippage.
@@ -155,6 +156,7 @@ class Portfolio:
         Args:
             symbol: Symbol to sell
             price: Target price
+            quantity: Quantity to sell (if None or exceeds position, sells entire position)
             date: Execution datetime
 
         Returns:
@@ -169,28 +171,29 @@ class Portfolio:
             )
             return False
 
+        # Determine actual quantity to sell (use position quantity if not specified or exceeds)
+        sell_quantity = min(get_decimal(quantity), get_decimal(position.quantity))
+
         # Apply slippage (price decreases when selling)
         execution_price = Price(get_decimal(price) * (ONE - get_decimal(self.slippage)))
 
         # Calculate proceeds after fees
         proceeds = Amount(
-            get_decimal(execution_price)
-            * get_decimal(position.quantity)
-            * (ONE - get_decimal(self.fee))
+            get_decimal(execution_price) * sell_quantity * (ONE - get_decimal(self.fee))
         )
 
         # Update cash
         self.cash = Amount(self.cash + Decimal(proceeds))
 
-        # Calculate P&L (actual proceeds minus actual cost)
-        entry_cost = (
+        # Calculate P&L for the sold quantity (actual proceeds minus proportional cost)
+        proportional_entry_cost = (
             position.entry_price
-            * position.quantity
+            * sell_quantity
             * (Decimal("1") + Decimal(self.slippage))
             * (Decimal("1") + Decimal(self.fee))
         )
         actual_proceeds = Decimal(proceeds)
-        pnl = Amount(actual_proceeds - entry_cost)
+        pnl = Amount(actual_proceeds - proportional_entry_cost)
         return_pct = Percentage(
             (Decimal(execution_price) / Decimal(position.entry_price) - Decimal("1"))
             * Decimal("100")
@@ -207,20 +210,24 @@ class Portfolio:
             exit_date=date,
             entry_price=position.entry_price,
             exit_price=execution_price,
-            quantity=position.quantity,
+            quantity=Quantity(sell_quantity),
             pnl=pnl,
             return_pct=return_pct,
         )
         self._trades.append(trade)
 
-        # Clear position
-        self._positions[symbol] = Position(symbol=symbol)
+        # Update position (reduce quantity or clear if fully sold)
+        remaining_quantity = get_decimal(position.quantity) - sell_quantity
+        if remaining_quantity <= Decimal("0"):
+            self._positions[symbol] = Position(symbol=symbol)
+        else:
+            position.quantity = Quantity(remaining_quantity)
 
         logger.debug(
             "Sell order executed",
             extra={
                 "symbol": symbol,
-                "quantity": float(position.quantity),
+                "quantity": float(sell_quantity),
                 "price": float(execution_price),
                 "proceeds": float(proceeds),
                 "pnl": float(pnl),

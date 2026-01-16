@@ -106,6 +106,19 @@ def backtest_portfolio_framework(
         except FileNotFoundError as e:
             raise ValueError(f"Cannot load data for {symbol}: {e}") from e
 
+    # CRITICAL: Align all data to common dates (same as standalone)
+    # Framework uses bar index, so all symbols must have same datetime at same index
+    common_dates = set(data[symbols[0]]["datetime"])
+    for df in data.values():
+        common_dates &= set(df["datetime"])
+    common_dates = sorted(common_dates)
+
+    # Filter each symbol's data to only common dates and reset index
+    for symbol in symbols:
+        df = data[symbol]
+        df = df[df["datetime"].isin(common_dates)].reset_index(drop=True)
+        data[symbol] = df
+
     # Create strategy
     StrategyFactory.create_strategy(
         "vbo_portfolio",
@@ -116,11 +129,13 @@ def backtest_portfolio_framework(
     )
 
     # Create config
+    # Lookback must match standalone: first valid row is index 20 (when prev_btc_ma20 becomes valid)
+    # Framework needs lookback=20 to start at bar index 20
     config = {
         "initial_capital": INITIAL_CAPITAL,
         "fee": FEE,
         "slippage": SLIPPAGE,
-        "lookback": max(MA_SHORT, BTC_MA),  # Use larger lookback
+        "lookback": BTC_MA,  # Start at same index as standalone (bar 20)
         "multiplier": 1,
     }
 
@@ -140,13 +155,13 @@ def backtest_portfolio_framework(
         total_return = float(performance.total_return)
         cagr = float(performance.cagr)
         mdd = float(performance.mdd)
-        sharpe = float(performance.sortino_ratio)
+        sharpe = float(performance.sharpe_ratio)
         final_equity = float(performance.final_equity)
     elif isinstance(performance, dict):
         total_return = performance.get("total_return", 0)
         cagr = performance.get("cagr", 0)
         mdd = performance.get("mdd", 0)
-        sharpe = performance.get("sortino_ratio", 0)
+        sharpe = performance.get("sharpe_ratio", 0)
         final_equity = performance.get("final_equity", INITIAL_CAPITAL)
     else:
         total_return = cagr = mdd = sharpe = 0

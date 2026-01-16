@@ -432,8 +432,9 @@ class VBOPortfolioBuyCondition(BaseCondition):
             return False
 
         # Get historical bars for this symbol
-        bars = engine.get_bars(symbol, self.ma_short + 2)
-        if bars is None or len(bars) < self.ma_short + 2:
+        # Need ma_short + 1 bars: ma_short for MA calculation + 1 current bar (which gets excluded)
+        bars = engine.get_bars(symbol, self.ma_short + 1)
+        if bars is None or len(bars) < self.ma_short + 1:
             return False
 
         # Calculate previous values (excluding current bar)
@@ -452,8 +453,9 @@ class VBOPortfolioBuyCondition(BaseCondition):
             return False
 
         # Get BTC data for market filter
-        btc_bars = engine.get_bars(self.btc_symbol, self.btc_ma + 2)
-        if btc_bars is None or len(btc_bars) < self.btc_ma + 2:
+        # Need btc_ma + 1 bars: btc_ma for MA calculation + 1 current bar (which gets excluded)
+        btc_bars = engine.get_bars(self.btc_symbol, self.btc_ma + 1)
+        if btc_bars is None or len(btc_bars) < self.btc_ma + 1:
             return False
 
         # Calculate BTC previous values
@@ -497,8 +499,9 @@ class VBOPortfolioSellCondition(BaseCondition):
 
     def __call__(self, engine: "IBacktestEngine", symbol: str) -> bool:
         # Get historical bars for this symbol
-        bars = engine.get_bars(symbol, self.ma_short + 2)
-        if bars is None or len(bars) < self.ma_short + 2:
+        # Need ma_short + 1 bars: ma_short for MA calculation + 1 current bar (which gets excluded)
+        bars = engine.get_bars(symbol, self.ma_short + 1)
+        if bars is None or len(bars) < self.ma_short + 1:
             return False
 
         # Calculate previous values (excluding current bar)
@@ -512,8 +515,9 @@ class VBOPortfolioSellCondition(BaseCondition):
         coin_sell_signal = prev_close < prev_ma5
 
         # Get BTC data for market filter
-        btc_bars = engine.get_bars(self.btc_symbol, self.btc_ma + 2)
-        if btc_bars is None or len(btc_bars) < self.btc_ma + 2:
+        # Need btc_ma + 1 bars: btc_ma for MA calculation + 1 current bar (which gets excluded)
+        btc_bars = engine.get_bars(self.btc_symbol, self.btc_ma + 1)
+        if btc_bars is None or len(btc_bars) < self.btc_ma + 1:
             return coin_sell_signal  # If no BTC data, rely on coin signal only
 
         # Calculate BTC previous values
@@ -534,6 +538,9 @@ class VBOPortfolioPricing(BasePricing):
     """VBO Portfolio pricing - calculates target buy price.
 
     Target price = Open + (Prev High - Prev Low) * noise_ratio
+
+    Note: This returns the raw target price without slippage.
+    Slippage is applied by portfolio.buy() during execution.
     """
 
     def __init__(self, noise_ratio: float = 0.5, **_kwargs):
@@ -562,6 +569,14 @@ class VBOPortfolioAllocation(BaseAllocation):
 
     Allocates total_equity / n_strategies to each coin.
     Like Upbit, supports fractional (decimal) quantities.
+
+    This returns the target buy_value, not quantity.
+    The backtest engine will calculate the actual quantity based on execution price.
+
+    To match standalone logic exactly:
+    - buy_value = min(target_alloc, cash * 0.99)
+    - Quantity calculation is done by backtest engine using:
+      qty = (buy_value - buy_fee) / buy_price
     """
 
     def __call__(self, engine: "IBacktestEngine", _symbol: str, price: float) -> float:
@@ -574,7 +589,7 @@ class VBOPortfolioAllocation(BaseAllocation):
         if n_strategies == 0:
             return 0.0
 
-        # Calculate total equity = cash + position values (like Upbit balance)
+        # Calculate total equity = cash + position values at open prices
         cash = float(engine.portfolio.cash)
         position_value = 0.0
         for sym in symbols:
@@ -582,23 +597,30 @@ class VBOPortfolioAllocation(BaseAllocation):
             if pos.is_open:
                 bar = engine.get_bar(sym)
                 if bar is not None:
-                    current_price = float(bar["close"])
-                    position_value += float(pos.quantity) * current_price
+                    open_price = float(bar["open"])
+                    position_value += float(pos.quantity) * open_price
 
         total_equity = cash + position_value
         target_alloc = total_equity / n_strategies
 
-        # Limit to available cash (99% safety buffer for fees/slippage)
+        # Match standalone logic: buy_value limited to 99% of cash
         buy_value = min(target_alloc, cash * 0.99)
 
         if buy_value <= 0:
             return 0.0
 
-        # Account for fees and slippage
-        cost_multiplier = 1 + float(engine.config.fee) + float(engine.config.slippage)
-
-        # Return fractional quantity (Upbit-style decimal support)
-        return buy_value / (price * cost_multiplier)
+        # Return quantity that when processed by portfolio.buy() results in
+        # spending exactly buy_value
+        #
+        # portfolio.buy() calculates:
+        #   exec_price = price * (1 + slippage)
+        #   cost = exec_price * qty * (1 + fee)
+        #
+        # We want: cost = buy_value
+        # So: qty = buy_value / (price * (1 + slippage) * (1 + fee))
+        fee = float(engine.config.fee)
+        slippage = float(engine.config.slippage)
+        return buy_value / (price * (1 + slippage) * (1 + fee))
 
 
 # === FACTORY FUNCTIONS ===

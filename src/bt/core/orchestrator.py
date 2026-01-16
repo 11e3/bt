@@ -5,7 +5,7 @@ execution, portfolio management, and performance tracking.
 """
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bt.domain.types import Amount
 from bt.interfaces.protocols import (
@@ -84,8 +84,8 @@ class BacktestOrchestrator:
         self,
         strategy: IStrategy,
         symbols: list[str],
-        data: dict[str, any],
-    ) -> dict[str, any]:
+        data: dict[str, Any],
+    ) -> dict[str, Any]:
         """Run complete backtest with given strategy and data.
 
         Args:
@@ -135,7 +135,10 @@ class BacktestOrchestrator:
 
     def _execute_backtest_loop(self, strategy: IStrategy, symbols: list[str]) -> None:
         """Execute main backtest event loop."""
-        self.data_provider.set_current_bars_to_start()
+        # Calculate start index based on lookback configuration
+        start_idx = self.config.lookback * self.config.multiplier
+        for symbol in symbols:
+            self.data_provider.set_current_bar(symbol, start_idx)
 
         while self.data_provider.has_more_data():
             current_date = None
@@ -282,7 +285,7 @@ class OrderExecutor:
         self.logger = logger or container.get(ILogger)
 
     def execute_buy_order(
-        self, symbol: str, price: Amount, quantity: Amount, date: datetime, _bar: any
+        self, symbol: str, price: Amount, quantity: Amount, date: datetime, _bar: Any
     ) -> None:
         """Execute buy order with validation."""
         self.logger.debug(
@@ -319,7 +322,7 @@ class OrderExecutor:
             )
 
     def execute_sell_order(
-        self, symbol: str, price: Amount, quantity: Amount, date: datetime, _bar: any
+        self, symbol: str, price: Amount, quantity: Amount, date: datetime, _bar: Any
     ) -> None:
         """Execute sell order with validation."""
         self.logger.debug(

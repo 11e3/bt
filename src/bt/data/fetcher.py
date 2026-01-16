@@ -5,7 +5,7 @@ timeout handling, rate limiting, and error recovery.
 """
 
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -103,7 +103,7 @@ class DataFetcher:
                 return cached_data
 
         all_data = []
-        current_end = end_date or datetime.now(tz=timezone.utc)
+        current_end = end_date or datetime.now(tz=UTC)
 
         # [추가] 무한 루프 방지용 변수
         prev_oldest_date = None
@@ -141,13 +141,13 @@ class DataFetcher:
                 # 현재 배치에서 가장 오래된 날짜 확인
                 oldest_date = df["datetime"].min()
 
-                # Ensure oldest_date is timezone-aware in timezone.utc for consistent comparisons
+                # Ensure oldest_date is timezone-aware in UTC for consistent comparisons
                 if pd.isna(oldest_date):
                     logger.debug("No valid dates in batch")
                     break
 
                 if oldest_date.tzinfo is None:
-                    oldest_date = oldest_date.replace(tzinfo=timezone.utc)
+                    oldest_date = oldest_date.replace(tzinfo=UTC)
 
                 # [수정 1] 진행 상황을 INFO로 변경하여 사용자에게 알림 (매 1000개 캔들마다 or 매번)
                 logger.info(
@@ -231,11 +231,11 @@ class DataFetcher:
             # Ensure datetime column is datetime type
             if "datetime" in df.columns:
                 df["datetime"] = pd.to_datetime(df["datetime"])
-                # Ensure datetime is timezone-aware in timezone.utc
+                # Ensure datetime is timezone-aware in UTC
                 if df["datetime"].dt.tz is None:
-                    df["datetime"] = df["datetime"].dt.tz_localize("timezone.utc")
+                    df["datetime"] = df["datetime"].dt.tz_localize("UTC")
                 else:
-                    df["datetime"] = df["datetime"].dt.tz_convert("timezone.utc")
+                    df["datetime"] = df["datetime"].dt.tz_convert("UTC")
 
             logger.debug(
                 "Existing data loaded",
@@ -268,16 +268,16 @@ class DataFetcher:
                 # 1. 먼저 datetime 객체로 변환 (아직 Naive 상태)
                 df["datetime"] = pd.to_datetime(df["datetime"])
 
-                # 2. 타임존 정보가 없는 경우(Naive)에만 KST 부여 후 timezone.utc로 변환
+                # 2. 타임존 정보가 없는 경우(Naive)에만 KST 부여 후 UTC로 변환
                 if df["datetime"].dt.tz is None:
                     df["datetime"] = (
                         df["datetime"]
                         .dt.tz_localize("Asia/Seoul")  # KST라고 명시
-                        .dt.tz_convert("timezone.utc")  # 그 값을 timezone.utc로 변환
+                        .dt.tz_convert("UTC")  # 그 값을 UTC로 변환
                     )
                 else:
-                    # 이미 타임존이 있다면 timezone.utc로 통일
-                    df["datetime"] = df["datetime"].dt.tz_convert("timezone.utc")
+                    # 이미 타임존이 있다면 UTC로 통일
+                    df["datetime"] = df["datetime"].dt.tz_convert("UTC")
 
             # Save to parquet
             df.to_parquet(file_path, index=False, engine="pyarrow")

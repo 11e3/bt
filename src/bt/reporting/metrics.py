@@ -64,16 +64,30 @@ def calculate_performance_metrics(
 
     # Calculate returns
     returns = np.diff(equity) / equity[:-1]
+    mean_return = np.mean(returns) if len(returns) > 0 else 0
+    # Use 365 for crypto (trades every day) instead of 252 for stocks
+    annualized_mean = mean_return * 365
 
-    # Sortino Ratio (using downside deviation)
+    # Sharpe Ratio (using total standard deviation)
+    total_std = np.std(returns) if len(returns) > 1 else 0
+    annualized_std = total_std * np.sqrt(365) if total_std > 0 else 0
+    if np.isnan(annualized_std) or annualized_std == 0 or np.isnan(annualized_mean):
+        sharpe = Decimal(0)
+    else:
+        sharpe = Decimal(annualized_mean / annualized_std)
+
+    # Sortino Ratio (using downside deviation only)
     downside_returns = returns[returns < 0]
     downside_std = np.std(downside_returns) if len(downside_returns) > 1 else 0
-    mean_return = np.mean(returns) if len(returns) > 0 else 0
-    annualized_mean = mean_return * 252  # Annualize mean return
-    annualized_downside_std = downside_std * np.sqrt(252) if downside_std > 0 else 0
-    sortino = Decimal(
-        (annualized_mean / annualized_downside_std) if annualized_downside_std != 0 else 0
-    )
+    annualized_downside_std = downside_std * np.sqrt(365) if downside_std > 0 else 0
+    if (
+        np.isnan(annualized_downside_std)
+        or annualized_downside_std == 0
+        or np.isnan(annualized_mean)
+    ):
+        sortino = Decimal(0)
+    else:
+        sortino = Decimal(annualized_mean / annualized_downside_std)
 
     # Trade statistics
     # Support both Trade objects and dicts
@@ -136,6 +150,7 @@ def calculate_performance_metrics(
         total_return=total_return,
         cagr=cagr,
         mdd=mdd,
+        sharpe_ratio=sharpe,
         sortino_ratio=sortino,
         win_rate=win_rate,
         profit_factor=profit_factor,
@@ -203,8 +218,6 @@ def calculate_yearly_returns(
 
     return yearly_returns
 
-    return yearly_returns
-
 
 def _empty_metrics() -> PerformanceMetrics:
     """Create empty metrics for edge cases."""
@@ -212,6 +225,7 @@ def _empty_metrics() -> PerformanceMetrics:
         total_return=Percentage(ZERO),
         cagr=Percentage(ZERO),
         mdd=Percentage(ZERO),
+        sharpe_ratio=ZERO,
         sortino_ratio=ZERO,
         win_rate=Percentage(ZERO),
         profit_factor=ZERO,
@@ -236,6 +250,7 @@ def print_performance_report(metrics: PerformanceMetrics) -> None:
     print(f"  Total Return:    {float(metrics.total_return):>10.2f}%")
     print(f"  CAGR:            {float(metrics.cagr):>10.2f}%")
     print(f"  MDD:             {float(metrics.mdd):>10.2f}%")
+    print(f"  Sharpe Ratio:    {float(metrics.sharpe_ratio):>10.2f}")
     print(f"  Sortino Ratio:   {float(metrics.sortino_ratio):>10.2f}")
 
     print("\nTrade Statistics:")

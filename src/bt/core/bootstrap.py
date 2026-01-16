@@ -55,7 +55,11 @@ def register_core_services(container: Container) -> None:
     if not container.is_registered(IPortfolio):
         # Get config from container if available
         config = getattr(container, "_config", {})
-        initial_cash = Amount(Decimal(str(config.get("initial_cash", DEFAULT_INITIAL_CASH))))
+        # Support both 'initial_cash' and 'initial_capital' keys for backwards compatibility
+        initial_cash_value = config.get(
+            "initial_cash", config.get("initial_capital", DEFAULT_INITIAL_CASH)
+        )
+        initial_cash = Amount(Decimal(str(initial_cash_value)))
         fee = Fee(Decimal(str(config.get("fee", DEFAULT_FEE))))
         slippage = Percentage(Decimal(str(config.get("slippage", DEFAULT_SLIPPAGE))))
 
