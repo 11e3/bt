@@ -2,7 +2,7 @@
 
 **Backtesting engine for the Crypto Quant Ecosystem.**
 
-Part of: `crypto-quant-system` → **`bt`** → `crypto-bot` → `crypto-regime-classifier-ml`
+Part of: [crypto-quant-system](https://github.com/11e3/crypto-quant-system) → **[bt](https://github.com/11e3/bt)** → [crypto-bot](https://github.com/11e3/crypto-bot) → `crypto-regime-classifier-ml`
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
