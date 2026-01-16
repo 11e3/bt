@@ -4,14 +4,14 @@ Calculates comprehensive backtest performance metrics including
 returns, risk measures, and trade statistics.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
 import numpy as np
 
 from bt.domain.models import PerformanceMetrics, Trade
-from bt.domain.types import Amount, Percentage
+from bt.domain.types import Amount, Percentage, Price, Quantity
 from bt.utils.constants import METRIC_PRECISION, ZERO
 from bt.utils.logging import get_logger
 
@@ -143,8 +143,35 @@ def calculate_performance_metrics(
     # Yearly returns
     yearly_returns = calculate_yearly_returns(equity, dates)
 
-    # Filter trades to only include Trade objects (not dicts)
-    valid_trades = [t for t in trades if isinstance(t, Trade)]
+    # Convert dict trades to Trade objects, keep existing Trade objects
+    valid_trades: list[Trade] = []
+    for t in trades:
+        if isinstance(t, Trade):
+            valid_trades.append(t)
+        elif isinstance(t, dict):
+            try:
+                # Convert dict to Trade object
+                entry_date = t.get("date", t.get("entry_date", datetime.now(tz=timezone.utc)))
+
+                if isinstance(entry_date, str):
+                    entry_date = datetime.fromisoformat(entry_date)
+                exit_date = t.get("exit_date", entry_date)
+                if isinstance(exit_date, str):
+                    exit_date = datetime.fromisoformat(exit_date)
+
+                trade = Trade(
+                    symbol=t.get("symbol", "UNKNOWN"),
+                    entry_date=entry_date,
+                    exit_date=exit_date,
+                    entry_price=Price(Decimal(str(t.get("entry_price", t.get("price", 0))))),
+                    exit_price=Price(Decimal(str(t.get("exit_price", t.get("price", 0))))),
+                    quantity=Quantity(Decimal(str(abs(t.get("quantity", 1))))),
+                    pnl=Amount(Decimal(str(t.get("pnl", 0)))),
+                    return_pct=Percentage(Decimal(str(t.get("return_pct", 0)))),
+                )
+                valid_trades.append(trade)
+            except Exception as e:
+                logger.debug(f"Could not convert trade dict to Trade object: {e}")
 
     metrics = PerformanceMetrics(
         total_return=total_return,
