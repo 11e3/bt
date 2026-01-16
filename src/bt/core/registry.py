@@ -251,7 +251,7 @@ class StrategyRegistry:
 
 
 # Global strategy registry instance
-_strategy_registry = StrategyRegistry()
+_strategy_registry: StrategyRegistry | None = None
 
 
 def get_strategy_registry() -> StrategyRegistry:
@@ -259,6 +259,7 @@ def get_strategy_registry() -> StrategyRegistry:
     global _strategy_registry
     if _strategy_registry is None:
         _strategy_registry = StrategyRegistry()
+        _strategy_registry.create_default_strategies()
     return _strategy_registry
 
 

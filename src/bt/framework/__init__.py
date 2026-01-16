@@ -8,6 +8,7 @@ import contextlib
 from typing import Any, Optional
 
 from bt.config.settings import BacktestConfig, create_production_config, get_config_manager
+from bt.core.bootstrap import register_core_services
 from bt.core.container import Container, get_default_container, set_default_container
 from bt.core.orchestrator import BacktestOrchestrator
 from bt.core.registry import StrategyFactory, get_strategy_registry
@@ -59,6 +60,7 @@ class BacktestFramework:
         self._config = config or {}
 
         # Register core services
+        register_core_services(self.container)
         with contextlib.suppress(BaseException):
             self.container.register_singleton(SecurityManager, SecurityManager)
 

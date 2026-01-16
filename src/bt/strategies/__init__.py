@@ -1,14 +1,14 @@
 """Trading strategies implementations."""
 
 from . import allocation, conditions, pricing
-from .vbo_allocation import create_vbo_momentum_allocator
-from .vbo_conditions import (
+from .conditions import (
     close_below_short_ma,
     price_above_long_ma,
     price_above_short_ma,
     vbo_breakout_triggered,
 )
-from .vbo_pricing import get_current_close, get_vbo_buy_price
+from .pricing import get_current_close, get_vbo_buy_price
+from .vbo_allocation import create_vbo_momentum_allocator
 
 __all__ = [
     "allocation",

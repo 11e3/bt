@@ -518,3 +518,9 @@ def create_performance_alerts(metrics_collector: MetricsCollector) -> None:
 
 # Initialize default alerts
 create_performance_alerts(_metrics_collector)
+
+
+# Alias for backward compatibility
+def get_monitor() -> PerformanceMonitor:
+    """Alias for get_performance_monitor()."""
+    return _performance_monitor

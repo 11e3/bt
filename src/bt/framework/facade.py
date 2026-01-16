@@ -8,6 +8,7 @@ import contextlib
 from typing import Any
 
 from bt.config.settings import get_config_manager
+from bt.core.bootstrap import register_core_services
 from bt.core.container import Container, get_default_container, set_default_container
 from bt.core.orchestrator import BacktestOrchestrator
 from bt.framework.data_loader import DataLoader
@@ -65,6 +66,7 @@ class BacktestFacade:
         self._config = config or {}
 
         # Register core services (Dependency Inversion Principle)
+        register_core_services(self.container)
         with contextlib.suppress(BaseException):
             self.container.register_singleton(SecurityManager, SecurityManager)
 

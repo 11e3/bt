@@ -350,9 +350,8 @@ class PerformanceTracker:
 
     def update_equity(self, date: datetime, prices: dict[str, Amount]) -> None:
         """Update equity curve for current period."""
-        total_value = self.container.get(IPortfolio).value + sum(
-            float(prices.get(symbol, 0)) for symbol in prices
-        )
+        portfolio_value = float(self.container.get(IPortfolio).value)
+        total_value = portfolio_value + sum(float(prices.get(symbol, 0)) for symbol in prices)
 
         self._dates.append(date)
         self._equity_values.append(total_value)

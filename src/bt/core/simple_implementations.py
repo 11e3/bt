@@ -110,6 +110,11 @@ class SimpleDataProvider(DataProvider):
         if symbol in self._data:
             self._current_bar[symbol] = min(index, len(self._data[symbol]) - 1)
 
+    def set_current_bars_to_start(self) -> None:
+        """Reset all symbols to the start of their data."""
+        for symbol in self._data:
+            self._current_bar[symbol] = 0
+
 
 class SimplePortfolio(Portfolio):
     """Simplified portfolio with native Decimal operations."""

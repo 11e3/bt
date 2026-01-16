@@ -308,6 +308,9 @@ class InputValidator:
             return value  # Numerics are generally safe
         if isinstance(value, bool) or value is None:
             return value
+        # Pass through DataFrames without modification (validated separately)
+        if isinstance(value, pd.DataFrame):
+            return value
         # For complex objects, convert to string representation
         # This is conservative - complex objects should be validated separately
         return str(value)
