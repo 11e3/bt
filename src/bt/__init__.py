@@ -145,10 +145,10 @@ __all__ = [
     "validate_input",
     "scan_security",
     # Data abstraction layer
-    "DataManager",
-    "get_data_manager",
-    "store_data",
-    "retrieve_data",
+    # "DataManager",
+    # "get_data_manager",
+    # "store_data",
+    # "retrieve_data",
     # Profiling and code quality
     "PerformanceProfiler",
     "profile_function",
