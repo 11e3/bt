@@ -290,6 +290,19 @@ class ConfigurationManager:
 
         return errors
 
+    def set_config(self, config: dict[str, Any]) -> None:
+        """Set runtime configuration overrides.
+
+        Args:
+            config: Dictionary of configuration overrides
+        """
+        # Store runtime overrides for later access
+        self._runtime_config = config
+
+    def get_runtime_config(self) -> dict[str, Any]:
+        """Get runtime configuration overrides."""
+        return getattr(self, "_runtime_config", {})
+
     def get_all_configs_dict(self) -> dict[str, dict[str, Any]]:
         """Get all configurations as nested dictionary."""
         return {name: config.dict() for name, config in self._configs.items()}

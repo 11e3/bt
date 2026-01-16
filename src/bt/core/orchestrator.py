@@ -400,9 +400,23 @@ class PerformanceTracker:
         )
 
     def update_equity(self, date: datetime, prices: dict[str, Amount]) -> None:
-        """Update equity curve for current period."""
-        portfolio_value = float(self.container.get(IPortfolio).value)
-        total_value = portfolio_value + sum(float(prices.get(symbol, 0)) for symbol in prices)
+        """Update equity curve for current period.
+
+        Args:
+            date: Current date
+            prices: Dictionary of symbol -> current price (not position values)
+        """
+        portfolio = self.container.get(IPortfolio)
+        cash = float(portfolio.cash)
+
+        # Calculate position values: quantity * current price
+        position_value = 0.0
+        for symbol, price in prices.items():
+            position = portfolio.get_position(symbol)
+            if position.is_open:
+                position_value += float(position.quantity) * float(price)
+
+        total_value = cash + position_value
 
         self._dates.append(date)
         self._equity_values.append(total_value)

@@ -176,10 +176,14 @@ class SimplePortfolio(Portfolio):
         entry_date: datetime | None = None,
     ) -> None:
         """Add to existing position with weighted average pricing."""
-        if entry_date is not None:
-            # entry_date is currently unused but kept for future use
-            pass
-        position = self.get_position(symbol)
+        if symbol not in self._positions:
+            # Create new position
+            self._positions[symbol] = self._create_position(
+                symbol, quantity, execution_price, entry_date or datetime.min.replace(tzinfo=None)
+            )
+            return
+
+        position = self._positions[symbol]
         if position.is_open:
             # Calculate weighted average price
             total_cost = position.quantity * position.entry_price
@@ -189,6 +193,11 @@ class SimplePortfolio(Portfolio):
             avg_price = (total_cost + new_cost) / total_quantity
             position.quantity = total_quantity
             position.entry_price = Price(avg_price)
+        else:
+            # Position was closed, create new one
+            self._positions[symbol] = self._create_position(
+                symbol, quantity, execution_price, entry_date or datetime.min.replace(tzinfo=None)
+            )
 
     def buy(self, symbol: str, price: Price, quantity: Quantity, date: datetime) -> bool:
         """Execute buy order.

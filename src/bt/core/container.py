@@ -204,6 +204,13 @@ class Container(IContainer):
         )
         self._registry.register_service(descriptor)
 
+    def register_singleton_factory(self, interface: type, factory: Callable[[], Any]) -> None:
+        """Register singleton factory - instance created once and cached."""
+        descriptor = ServiceDescriptor(
+            interface=interface, factory=factory, lifetime=ServiceLifetime.SINGLETON
+        )
+        self._registry.register_service(descriptor)
+
     def register_transient(self, interface: type, implementation: type) -> None:
         """Register transient service."""
         descriptor = ServiceDescriptor(

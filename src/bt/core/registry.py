@@ -12,6 +12,7 @@ from bt.strategies.implementations import (
     BuyAndHoldStrategy,
     MomentumStrategy,
     StrategyFactory,
+    VBOPortfolioStrategy,
     VolatilityBreakoutStrategy,
 )
 
@@ -246,6 +247,15 @@ class StrategyRegistry:
             strategy_class=BuyAndHoldStrategy,
             category="Simple",
             description="Simple buy and hold strategy",
+            author="Framework Team",
+        )
+
+        # Register VBO Portfolio strategy
+        self.register_strategy(
+            name="vbo_portfolio",
+            strategy_class=VBOPortfolioStrategy,
+            category="Portfolio",
+            description="Multi-asset VBO strategy with BTC market filter and 1/N allocation",
             author="Framework Team",
         )
 

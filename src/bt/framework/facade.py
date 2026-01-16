@@ -65,6 +65,10 @@ class BacktestFacade:
         self.logger = logger or get_logger_adapter("bt.framework.facade")
         self._config = config or {}
 
+        # Set config on container before registering services
+        if config:
+            self.container.set_config(config)
+
         # Register core services (Dependency Inversion Principle)
         register_core_services(self.container)
         with contextlib.suppress(BaseException):

@@ -51,11 +51,17 @@ def register_core_services(container: Container) -> None:
     if not container.is_registered(IDataProvider):
         container.register_factory(IDataProvider, SimpleDataProvider)
 
-    # Register portfolio with default configuration
+    # Register portfolio with configuration from container (as singleton)
     if not container.is_registered(IPortfolio):
-        container.register_factory(
+        # Get config from container if available
+        config = getattr(container, "_config", {})
+        initial_cash = Amount(Decimal(str(config.get("initial_cash", DEFAULT_INITIAL_CASH))))
+        fee = Fee(Decimal(str(config.get("fee", DEFAULT_FEE))))
+        slippage = Percentage(Decimal(str(config.get("slippage", DEFAULT_SLIPPAGE))))
+
+        container.register_singleton_factory(
             IPortfolio,
-            lambda: SimplePortfolio(DEFAULT_INITIAL_CASH, DEFAULT_FEE, DEFAULT_SLIPPAGE),
+            lambda ic=initial_cash, f=fee, s=slippage: SimplePortfolio(ic, f, s),
         )
 
     # Register logger
