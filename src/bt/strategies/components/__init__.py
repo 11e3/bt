@@ -529,6 +529,7 @@ class VBOPortfolioAllocation(BaseAllocation):
     """VBO Portfolio allocation - equal weight among all portfolio coins (1/N).
 
     Allocates total_equity / n_strategies to each coin.
+    Like Upbit, supports fractional (decimal) quantities.
     """
 
     def __call__(self, engine: "IBacktestEngine", _symbol: str, price: float) -> float:
@@ -536,23 +537,35 @@ class VBOPortfolioAllocation(BaseAllocation):
             return 0.0
 
         # Get number of symbols (n_strategies)
-        n_strategies = len(engine.data_provider.symbols)
+        symbols = engine.data_provider.symbols
+        n_strategies = len(symbols)
         if n_strategies == 0:
             return 0.0
 
-        # Calculate target allocation: total_equity / n_strategies
-        total_equity = float(engine.portfolio.value)
+        # Calculate total equity = cash + position values (like Upbit balance)
+        cash = float(engine.portfolio.cash)
+        position_value = 0.0
+        for sym in symbols:
+            pos = engine.portfolio.get_position(sym)
+            if pos.is_open:
+                bar = engine.get_bar(sym)
+                if bar is not None:
+                    current_price = float(bar["close"])
+                    position_value += float(pos.quantity) * current_price
+
+        total_equity = cash + position_value
         target_alloc = total_equity / n_strategies
 
-        # Limit to available cash
-        cash = float(engine.portfolio.cash)
-        buy_value = min(target_alloc, cash * 0.99)  # 99% safety buffer
+        # Limit to available cash (99% safety buffer for fees/slippage)
+        buy_value = min(target_alloc, cash * 0.99)
 
         if buy_value <= 0:
             return 0.0
 
         # Account for fees and slippage
         cost_multiplier = 1 + float(engine.config.fee) + float(engine.config.slippage)
+
+        # Return fractional quantity (Upbit-style decimal support)
         return buy_value / (price * cost_multiplier)
 
 
