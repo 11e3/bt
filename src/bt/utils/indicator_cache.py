@@ -32,7 +32,11 @@ class IndicatorCache:
             Hash string representing data content
         """
         # Convert to bytes and hash
-        data_bytes = data.values.tobytes() if isinstance(data, pd.Series) else data.tobytes()
+        if isinstance(data, pd.Series):
+            arr = data.to_numpy()
+            data_bytes = arr.tobytes()
+        else:
+            data_bytes = data.tobytes()
 
         return hashlib.md5(data_bytes).hexdigest()[:16]
 

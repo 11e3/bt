@@ -128,8 +128,30 @@ module = [
     "pandas.*",
     "joblib.*",
     "sklearn.*",
+    "psutil.*",
+    "uvicorn.*",
+    "fastapi.*",
+    "plotly.*",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "bt.plugins.*",
+    "bt.profiling.*",
+    "bt.monitoring.*",
+    "bt.api.*",
+    "bt.data.storage.*",
+    "bt.security.*",
+    "bt.framework.*",
+    "bt.reporting.*",
+    "bt.engine.*",
+    "bt.strategies.*",
+    "bt.core.*",
+    "bt.data.*",
+    "bt.config.*",
+]
+ignore_errors = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"

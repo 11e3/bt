@@ -5,14 +5,19 @@ the backtesting framework with custom strategies, data providers,
 and reporting components.
 """
 
+from __future__ import annotations
+
 import importlib
 import inspect
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import pkg_resources
+
+if TYPE_CHECKING:
+    from pkg_resources import Requirement
 
 from bt.exceptions import StrategyError
 from bt.utils.logging import get_logger
@@ -29,21 +34,23 @@ class PluginMetadata:
     description: str
     author: str
     entry_points: dict[str, str]
-    dependencies: list[str] = None
+    dependencies: list[str] = field(default_factory=list)
     homepage: str | None = None
     license: str | None = None
 
     @classmethod
-    def from_distribution(cls, dist: pkg_resources.Distribution) -> "PluginMetadata":
+    def from_distribution(cls, dist: pkg_resources.Distribution) -> PluginMetadata:
         """Create metadata from a pkg_resources distribution."""
         dist.get_metadata("METADATA")
+        requires = dist.requires() if hasattr(dist, "requires") else []
+        deps: list[str] = [str(r) for r in requires] if requires else []
         return cls(
             name=dist.project_name,
             version=dist.version,
             description=dist.get_metadata("DESCRIPTION") or "",
             author=dist.get_metadata("AUTHOR") or "",
             entry_points={},  # Will be filled by entry point scanning
-            dependencies=list(dist.requires()) if hasattr(dist, "requires") else [],
+            dependencies=deps,
         )
 
 
@@ -118,7 +125,7 @@ class ReporterPlugin(PluginInterface):
 class PluginManager:
     """Central manager for plugin lifecycle and registration."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._plugins: dict[str, PluginInterface] = {}
         self._metadata: dict[str, PluginMetadata] = {}
         self._loaded_plugins: dict[str, Any] = {}
@@ -260,7 +267,7 @@ class PluginManager:
 class PluginRegistry:
     """Registry for managing different types of plugins."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._strategies: dict[str, type] = {}
         self._data_providers: dict[str, type] = {}
         self._reporters: dict[str, type] = {}

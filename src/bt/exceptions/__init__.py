@@ -4,9 +4,19 @@ Provides consistent error handling across the backtesting framework
 with structured error codes and context information.
 """
 
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any
+from functools import wraps
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from logging import Logger
+
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
 class ErrorCode(str, Enum):
@@ -80,8 +90,12 @@ class ConfigurationError(BacktestError):
     """Exception for configuration-related errors."""
 
     def __init__(
-        self, message: str, parameter: str | None = None, value: Any | None = None, **kwargs
-    ):
+        self,
+        message: str,
+        parameter: str | None = None,
+        value: Any | None = None,
+        **kwargs: Any,
+    ) -> None:
         context = kwargs.get("context", {})
         if parameter:
             context["parameter"] = parameter
@@ -99,8 +113,8 @@ class DataError(BacktestError):
         message: str,
         symbol: str | None = None,
         expected_type: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         context = kwargs.get("context", {})
         if symbol:
             context["symbol"] = symbol
@@ -121,8 +135,8 @@ class ValidationError(BacktestError):
         field: str | None = None,
         value: Any | None = None,
         constraint: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         context = kwargs.get("context", {})
         if field:
             context["field"] = field
@@ -137,7 +151,7 @@ class ValidationError(BacktestError):
 class InsufficientFundsError(BacktestError):
     """Exception for insufficient funds during trading."""
 
-    def __init__(self, required: float, available: float, symbol: str, **kwargs):
+    def __init__(self, required: float, available: float, symbol: str, **kwargs: Any) -> None:
         context = kwargs.get("context", {})
         context.update(
             {
@@ -165,8 +179,8 @@ class StrategyError(BacktestError):
         message: str,
         strategy: str | None = None,
         validation_errors: list[str] | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         context = kwargs.get("context", {})
         if strategy:
             context["strategy"] = strategy
@@ -182,8 +196,12 @@ class BacktestExecutionError(BacktestError):
     """Exception for backtest execution failures."""
 
     def __init__(
-        self, message: str, stage: str | None = None, progress: float | None = None, **kwargs
-    ):
+        self,
+        message: str,
+        stage: str | None = None,
+        progress: float | None = None,
+        **kwargs: Any,
+    ) -> None:
         context = kwargs.get("context", {})
         if stage:
             context["stage"] = stage
@@ -263,7 +281,7 @@ class ErrorHandler:
     @staticmethod
     def handle_error(
         error: Exception,
-        logger,
+        logger: Logger,
         reraise: bool = False,
         context: dict[str, Any] | None = None,
     ) -> None:
@@ -300,7 +318,9 @@ class ErrorHandler:
 # === DECORATORS ===
 
 
-def handle_errors(logger, reraise: bool = False):
+def handle_errors(
+    logger: Logger, reraise: bool = False
+) -> Callable[[Callable[P, T]], Callable[P, T | None]]:
     """Decorator for automatic error handling on functions.
 
     Args:
@@ -311,21 +331,25 @@ def handle_errors(logger, reraise: bool = False):
         Decorated function
     """
 
-    def decorator(func):
-        def wrapper(*args, **kwargs):
+    def decorator(func: Callable[P, T]) -> Callable[P, T | None]:
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
             try:
                 return func(*args, **kwargs)
             except Exception as e:
                 ErrorHandler.handle_error(e, logger, reraise, context={"function": func.__name__})
                 if not reraise:
                     return None
+                raise  # This line is unreachable but helps type checker
 
         return wrapper
 
     return decorator
 
 
-def validate_parameters(**validators):
+def validate_parameters(
+    **validators: Callable[[Any], None],
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Decorator for parameter validation.
 
     Args:
@@ -335,8 +359,9 @@ def validate_parameters(**validators):
         Decorated function
     """
 
-    def decorator(func):
-        def wrapper(*args, **kwargs):
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             # Validate each parameter
             for param_name, validator in validators.items():
                 if param_name in kwargs:

@@ -239,19 +239,27 @@ class ConfigurationManager:
 
     def get_base_config(self) -> BacktestBaseConfig:
         """Get base configuration."""
-        return self.get_config("base")
+        config = self.get_config("base")
+        assert isinstance(config, BacktestBaseConfig)
+        return config
 
     def get_strategy_config(self) -> StrategyConfig:
         """Get strategy configuration."""
-        return self.get_config("strategy")
+        config = self.get_config("strategy")
+        assert isinstance(config, StrategyConfig)
+        return config
 
     def get_backtest_config(self) -> BacktestConfig:
         """Get backtest configuration."""
-        return self.get_config("backtest")
+        config = self.get_config("backtest")
+        assert isinstance(config, BacktestConfig)
+        return config
 
     def get_reporting_config(self) -> ReportingConfig:
         """Get reporting configuration."""
-        return self.get_config("reporting")
+        config = self.get_config("reporting")
+        assert isinstance(config, ReportingConfig)
+        return config
 
     def get_env_value(self, key: str, default: Any = None) -> Any:
         """Get environment-specific value from configuration."""

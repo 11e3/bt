@@ -10,7 +10,7 @@ class DecimalCache:
     _max_size = 10000
 
     @classmethod
-    def get(cls, value: str | int | float | Decimal) -> Decimal:
+    def get(cls, value: "str | int | float | Decimal") -> Decimal:
         """Get Decimal from cache, creating and caching if not present.
 
         Args:
@@ -47,6 +47,6 @@ class DecimalCache:
 
 
 # Convenience function for common usage
-def get_decimal(value: str | int | float) -> Decimal:
+def get_decimal(value: str | int | float | Decimal) -> Decimal:
     """Convenience function to get cached Decimal."""
     return DecimalCache.get(value)

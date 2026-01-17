@@ -193,10 +193,15 @@ class SimplePortfolio(Portfolio):
             avg_price = (total_cost + new_cost) / total_quantity
             position.quantity = total_quantity
             position.entry_price = Price(avg_price)
+            # Note: entry_date is kept as the first entry date for averaging purposes
         else:
-            # Position was closed, create new one
+            # Position was closed, create new one with current entry_date
+            # This is crucial: must use the provided entry_date, not fall back to datetime.min
+            new_entry_date = (
+                entry_date if entry_date is not None else datetime.min.replace(tzinfo=None)
+            )
             self._positions[symbol] = self._create_position(
-                symbol, quantity, execution_price, entry_date or datetime.min.replace(tzinfo=None)
+                symbol, quantity, execution_price, new_entry_date
             )
 
     def buy(self, symbol: str, price: Price, quantity: Quantity, date: datetime) -> bool:
@@ -259,9 +264,21 @@ class SimplePortfolio(Portfolio):
             "100"
         )
 
+        # Validate entry_date before creating trade
+        entry_date = position.entry_date
+        if entry_date is None:
+            logger.warning(f"Position {symbol} has no entry_date, using exit_date")
+            entry_date = date
+        elif entry_date > date:
+            # This can happen if position data is corrupted or dates are out of order
+            logger.warning(
+                f"Position {symbol} entry_date ({entry_date}) > exit_date ({date}), using exit_date"
+            )
+            entry_date = date
+
         trade = Trade(
             symbol=symbol,
-            entry_date=position.entry_date,
+            entry_date=entry_date,
             exit_date=date,
             entry_price=position.entry_price,
             exit_price=Price(execution_price),

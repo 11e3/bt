@@ -67,8 +67,8 @@ class DataProvider(ABC):
                 if isinstance(dt, datetime):
                     return dt
                 if hasattr(dt, "to_pydatetime"):
-                    return dt.to_pydatetime()
-                return pd.to_datetime(dt).to_pydatetime()
+                    return dt.to_pydatetime()  # type: ignore[no-any-return]
+                return pd.to_datetime(dt).to_pydatetime()  # type: ignore[no-any-return]
         return None
 
 

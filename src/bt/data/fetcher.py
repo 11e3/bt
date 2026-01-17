@@ -5,7 +5,7 @@ timeout handling, rate limiting, and error recovery.
 """
 
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -103,7 +103,7 @@ class DataFetcher:
                 return cached_data
 
         all_data = []
-        current_end = end_date or datetime.now(tz=UTC)
+        current_end = end_date or datetime.now(tz=timezone.utc)
 
         # [추가] 무한 루프 방지용 변수
         prev_oldest_date = None
@@ -147,7 +147,7 @@ class DataFetcher:
                     break
 
                 if oldest_date.tzinfo is None:
-                    oldest_date = oldest_date.replace(tzinfo=UTC)
+                    oldest_date = oldest_date.replace(tzinfo=timezone.utc)
 
                 # [수정 1] 진행 상황을 INFO로 변경하여 사용자에게 알림 (매 1000개 캔들마다 or 매번)
                 logger.info(
