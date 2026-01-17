@@ -14,6 +14,7 @@ from bt.strategies.implementations import (
     MomentumStrategy,
     StrategyFactory,
     VBOPortfolioStrategy,
+    VBORegimeStrategy,
     VolatilityBreakoutStrategy,
 )
 
@@ -268,6 +269,15 @@ class StrategyRegistry:
             strategy_class=VBOPortfolioStrategy,
             category="Portfolio",
             description="Multi-asset VBO strategy with BTC market filter and 1/N allocation",
+            author="Framework Team",
+        )
+
+        # Register VBO Regime strategy (ML model filter)
+        self.register_strategy(
+            name="vbo_regime",
+            strategy_class=VBORegimeStrategy,
+            category="Portfolio",
+            description="Multi-asset VBO strategy with ML regime model filter and 1/N allocation",
             author="Framework Team",
         )
 
