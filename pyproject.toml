@@ -31,6 +31,8 @@ dependencies = [
     "pyupbit>=0.2.0",
     "plotly>=5.0.0",
     "psutil>=5.0.0",
+    "joblib>=1.3.0",
+    "scikit-learn>=1.3.0",
 ]
 
 [project.optional-dependencies]
@@ -123,6 +125,8 @@ module = [
     "pyupbit.*",
     "pyarrow.*",
     "pandas.*",
+    "joblib.*",
+    "sklearn.*",
 ]
 ignore_missing_imports = true
 

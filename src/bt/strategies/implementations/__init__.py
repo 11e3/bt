@@ -4,9 +4,11 @@ Unified strategy definitions using the new component system.
 Replaces scattered VBO and other strategy files.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bt.interfaces.strategy_types import (
     ConditionDict,
@@ -299,6 +301,88 @@ class VBOPortfolioStrategy(BaseStrategy):
         return create_allocation("vbo_portfolio")
 
 
+class VBORegimeStrategy(BaseStrategy):
+    """VBO Strategy with ML Regime Model filter.
+
+    A multi-asset volatility breakout strategy that:
+    - Uses ML regime classifier instead of BTC MA20 for market filter
+    - Uses individual coin MA5 for trend confirmation
+    - Allocates 1/N of total equity to each coin
+    - Sells when trend exits (MA5 breakdown or regime becomes NOT_BULL)
+
+    Parameters:
+        ma_short: Short MA period for individual coins (default: 5)
+        noise_ratio: Volatility breakout multiplier (default: 0.5)
+        btc_symbol: Symbol for regime prediction (default: "BTC")
+        model_path: Path to the regime classifier model (.joblib)
+    """
+
+    def validate(self) -> list[str]:
+        """Validate VBO Regime configuration."""
+        errors = []
+
+        ma_short = self.config.get("ma_short", 5)
+        if not isinstance(ma_short, int) or ma_short < 1 or ma_short > 50:
+            errors.append("ma_short must be integer between 1-50")
+
+        noise_ratio = self.config.get("noise_ratio", 0.5)
+        if not isinstance(noise_ratio, (int, float)) or noise_ratio <= 0 or noise_ratio > 2:
+            errors.append("noise_ratio must be number between 0-2")
+
+        model_path = self.config.get("model_path")
+        if not model_path:
+            errors.append("model_path is required")
+
+        return errors
+
+    def get_name(self) -> str:
+        """Get strategy name."""
+        ma_short = self.config.get("ma_short", 5)
+        noise_ratio = self.config.get("noise_ratio", 0.5)
+        return f"VBORegime(MA{ma_short}, k={noise_ratio})"
+
+    def get_buy_conditions(self) -> ConditionDict:
+        """Get VBO Regime buy conditions."""
+        return {
+            "no_position": create_condition("no_open_position"),
+            "vbo_regime_buy": create_condition(
+                "vbo_regime_buy",
+                ma_short=self.config.get("ma_short", 5),
+                noise_ratio=self.config.get("noise_ratio", 0.5),
+                btc_symbol=self.config.get("btc_symbol", "BTC"),
+                model_path=self.config.get("model_path"),
+            ),
+        }
+
+    def get_sell_conditions(self) -> ConditionDict:
+        """Get VBO Regime sell conditions."""
+        return {
+            "vbo_regime_sell": create_condition(
+                "vbo_regime_sell",
+                ma_short=self.config.get("ma_short", 5),
+                btc_symbol=self.config.get("btc_symbol", "BTC"),
+                model_path=self.config.get("model_path"),
+            ),
+        }
+
+    def get_buy_price_func(self) -> IPricing:
+        """Get VBO Regime buy price function."""
+        return create_pricing(
+            "vbo_portfolio",
+            noise_ratio=self.config.get("noise_ratio", 0.5),
+        )
+
+    def get_sell_price_func(self) -> IPricing:
+        """Get sell price function (open price)."""
+        from bt.strategies.components import CurrentOpenPricing
+
+        return CurrentOpenPricing()
+
+    def get_allocation_func(self) -> IAllocation:
+        """Get VBO Regime allocation function (1/N equal weight)."""
+        return create_allocation("vbo_portfolio")
+
+
 # === STRATEGY FACTORY ===
 
 
@@ -319,12 +403,13 @@ class StrategyFactory:
         Raises:
             ValueError: If strategy type is unknown
         """
-        strategies = {
+        strategies: dict[str, type[BaseStrategy]] = {
             "volatility_breakout": VolatilityBreakoutStrategy,
             "vbo": VolatilityBreakoutStrategy,  # Alias for VBO
             "momentum": MomentumStrategy,
             "buy_and_hold": BuyAndHoldStrategy,
             "vbo_portfolio": VBOPortfolioStrategy,
+            "vbo_regime": VBORegimeStrategy,
         }
 
         if strategy_type not in strategies:
@@ -337,7 +422,14 @@ class StrategyFactory:
     @staticmethod
     def list_strategies() -> list[str]:
         """List all available strategies."""
-        return ["volatility_breakout", "vbo", "momentum", "buy_and_hold", "vbo_portfolio"]
+        return [
+            "volatility_breakout",
+            "vbo",
+            "momentum",
+            "buy_and_hold",
+            "vbo_portfolio",
+            "vbo_regime",
+        ]
 
     @staticmethod
     def get_strategy_info(strategy_type: str) -> dict:
@@ -395,6 +487,17 @@ class StrategyFactory:
                     "btc_ma": 20,
                     "noise_ratio": 0.5,
                     "btc_symbol": "BTC",
+                },
+            },
+            "vbo_regime": {
+                "name": "VBO Regime",
+                "description": "Multi-asset VBO strategy with ML regime model filter and 1/N allocation",
+                "parameters": ["ma_short", "noise_ratio", "btc_symbol", "model_path"],
+                "default_config": {
+                    "ma_short": 5,
+                    "noise_ratio": 0.5,
+                    "btc_symbol": "BTC",
+                    "model_path": "",  # Required
                 },
             },
         }
