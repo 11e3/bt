@@ -52,6 +52,9 @@ uv sync --dev
 
 # Or using pip
 pip install -e ".[dev]"
+
+# With ML features (regime classification)
+pip install -e ".[dev,ml]"
 ```
 
 ## Quick Start
@@ -225,6 +228,7 @@ framework = BacktestFacade(config=config)
 
 ## Documentation
 
+- [API Reference](docs/api_reference.rst)
 - [SOLID Refactoring Guide](docs/SOLID_REFACTORING.md)
 - [Migration Guide](docs/MIGRATION_GUIDE.md)
 - [Changelog](docs/CHANGELOG_SOLID.md)
@@ -251,4 +255,4 @@ MIT License
 
 ---
 
-**Version**: 2.1.0 | **Python**: 3.10+
+**Version**: 2.2.0 | **Python**: 3.10+
