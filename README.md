@@ -8,12 +8,6 @@ Part of: [crypto-quant-system](https://github.com/11e3/crypto-quant-system) → 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![SOLID](https://img.shields.io/badge/Architecture-SOLID-brightgreen.svg)](docs/SOLID_REFACTORING.md)
 
-## Screenshots
-
-| Backtest Results | Parameter Optimization | Monte Carlo Simulation |
-|:----------------:|:----------------------:|:----------------------:|
-| ![Backtest](https://raw.githubusercontent.com/11e3/crypto-quant-system/main/docs/images/bt/backtest.png) | ![Optimization](https://raw.githubusercontent.com/11e3/crypto-quant-system/main/docs/images/bt/optimization.png) | ![Monte Carlo](https://raw.githubusercontent.com/11e3/crypto-quant-system/main/docs/images/bt/montecarlo.png) |
-
 ## Ecosystem Overview
 
 ```
