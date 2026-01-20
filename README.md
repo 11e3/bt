@@ -12,7 +12,7 @@ Part of: [crypto-quant-system](https://github.com/11e3/crypto-quant-system) → 
 
 | Backtest Results | Parameter Optimization | Monte Carlo Simulation |
 |:----------------:|:----------------------:|:----------------------:|
-| ![Backtest](img/backtest.png) | ![Optimization](img/optimization.png) | ![Monte Carlo](img/montecarlo.png) |
+| ![Backtest](https://raw.githubusercontent.com/11e3/crypto-quant-system/main/docs/images/bt/backtest.png) | ![Optimization](https://raw.githubusercontent.com/11e3/crypto-quant-system/main/docs/images/bt/optimization.png) | ![Monte Carlo](https://raw.githubusercontent.com/11e3/crypto-quant-system/main/docs/images/bt/montecarlo.png) |
 
 ## Ecosystem Overview
 
