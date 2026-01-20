@@ -116,7 +116,7 @@ class BacktestConfiguration(ModuleConfiguration):
         symbols = self.get("symbols", [])
         if isinstance(symbols, str):
             return [symbols]  # Convert single string to list
-        return symbols
+        return list(symbols) if symbols else []
 
     def get_lookback(self) -> int:
         """Get lookback period."""
@@ -136,7 +136,7 @@ class BacktestConfiguration(ModuleConfiguration):
 
     def get_interval(self) -> str:
         """Get data interval."""
-        return self.get("interval", "day")
+        return str(self.get("interval", "day"))
 
 
 # Global configuration registry

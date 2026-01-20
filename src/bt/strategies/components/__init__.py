@@ -562,11 +562,20 @@ class RegimeModelLoader:
 
         Returns:
             Dict containing model, scaler, label_encoder, feature_names, classes
+
+        Raises:
+            ImportError: If joblib is not installed (install with `pip install bt[ml]`)
+            FileNotFoundError: If model file does not exist
         """
         if self._model is not None:
             return self._model
 
-        import joblib  # type: ignore[import-untyped]
+        try:
+            import joblib  # type: ignore[import-untyped]
+        except ImportError as e:
+            raise ImportError(
+                "ML dependencies not installed. Install with: pip install bt[ml]"
+            ) from e
 
         model_path = Path(model_path)
         if not model_path.exists():

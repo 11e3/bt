@@ -236,7 +236,7 @@ Core:
 - pydantic - Configuration validation
 - matplotlib, plotly - Visualization
 
-ML (optional):
+ML (optional - install with `pip install bt[ml]`):
 - scikit-learn - ML utilities
 - xgboost - Gradient boosting
 - joblib - Model serialization

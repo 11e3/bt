@@ -27,4 +27,4 @@ sphinx-gallery>=0.11.0
 sphinxcontrib-pdfwriter>=1.0
 
 # Graphviz for architecture diagrams (optional)
-sphinx.ext.graphviz
+# Note: sphinx.ext.graphviz is built-in, no pip install needed

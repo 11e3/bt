@@ -31,12 +31,14 @@ dependencies = [
     "pyupbit>=0.2.0",
     "plotly>=5.0.0",
     "psutil>=5.0.0",
+]
+
+[project.optional-dependencies]
+ml = [
     "joblib>=1.3.0",
     "scikit-learn>=1.3.0",
     "xgboost>=2.0.0",
 ]
-
-[project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=6.0.0",
@@ -135,6 +137,10 @@ module = [
 ]
 ignore_missing_imports = true
 
+# Modules with full type checking enabled:
+# bt.utils, bt.domain, bt.interfaces, bt.validation, bt.exceptions, bt.config
+
+# Modules still needing type fixes (to be addressed incrementally)
 [[tool.mypy.overrides]]
 module = [
     "bt.plugins.*",
@@ -149,7 +155,6 @@ module = [
     "bt.strategies.*",
     "bt.core.*",
     "bt.data.*",
-    "bt.config.*",
 ]
 ignore_errors = true
 

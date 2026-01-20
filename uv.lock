@@ -48,7 +48,6 @@ name = "bt"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "joblib" },
     { name = "matplotlib" },
     { name = "matplotlib-stubs" },
     { name = "numpy" },
@@ -59,9 +58,6 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyupbit" },
-    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "xgboost" },
 ]
 
 [package.optional-dependencies]
@@ -84,6 +80,12 @@ docs = [
     { name = "sphinx", version = "9.1.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "sphinx-rtd-theme" },
 ]
+ml = [
+    { name = "joblib" },
+    { name = "scikit-learn", version = "1.7.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scikit-learn", version = "1.8.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "xgboost" },
+]
 test = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -93,7 +95,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "joblib", specifier = ">=1.3.0" },
+    { name = "joblib", marker = "extra == 'ml'", specifier = ">=1.3.0" },
     { name = "matplotlib", specifier = ">=3.5.0" },
     { name = "matplotlib-stubs", specifier = ">=0.3.11" },
     { name = "matplotlib-stubs", marker = "extra == 'dev'", specifier = ">=0.3.11" },
@@ -116,13 +118,13 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'test'", specifier = ">=6.0.0" },
     { name = "pyupbit", specifier = ">=0.2.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
-    { name = "scikit-learn", specifier = ">=1.3.0" },
+    { name = "scikit-learn", marker = "extra == 'ml'", specifier = ">=1.3.0" },
     { name = "sphinx", marker = "extra == 'docs'", specifier = ">=7.0.0" },
     { name = "sphinx-rtd-theme", marker = "extra == 'docs'", specifier = ">=2.0.0" },
     { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6.0.1" },
-    { name = "xgboost", specifier = ">=2.0.0" },
+    { name = "xgboost", marker = "extra == 'ml'", specifier = ">=2.0.0" },
 ]
-provides-extras = ["dev", "test", "docs", "benchmark"]
+provides-extras = ["ml", "dev", "test", "docs", "benchmark"]
 
 [[package]]
 name = "certifi"
