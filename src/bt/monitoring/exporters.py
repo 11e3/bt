@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 
-from bt.monitoring import MetricValue, get_metrics_collector
+from bt.monitoring.metrics import MetricsCollector, MetricValue
 
 
 @dataclass
@@ -248,12 +248,22 @@ class MetricsHTTPServer(BaseHTTPRequestHandler):
 class MetricsServer:
     """HTTP server for exposing metrics endpoints."""
 
-    def __init__(self, host: str = "localhost", port: int = 8000):
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 8000,
+        metrics_collector: MetricsCollector | None = None,
+    ):
         self.host = host
         self.port = port
         self.server = None
         self.thread = None
-        self.metrics_collector = get_metrics_collector()
+        # Deferred import to avoid circular dependency
+        if metrics_collector is None:
+            from bt.monitoring import get_metrics_collector
+
+            metrics_collector = get_metrics_collector()
+        self.metrics_collector = metrics_collector
 
     def start(self):
         """Start the metrics server in a background thread."""

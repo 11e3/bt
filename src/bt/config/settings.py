@@ -59,6 +59,7 @@ class BacktestBaseConfig(BaseSettings):
         env_file=".env",
         env_prefix="BT_",
         case_sensitive=False,
+        extra="ignore",  # Ignore extra env vars (e.g., GCS_BUCKET)
     )
 
 
@@ -103,6 +104,7 @@ class StrategyConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="BT_STRATEGY_",
         case_sensitive=False,
+        extra="ignore",
     )
 
 
@@ -150,6 +152,7 @@ class BacktestConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="BT_",
         case_sensitive=False,
+        extra="ignore",
     )
 
 
@@ -182,6 +185,7 @@ class ReportingConfig(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="BT_REPORTING_",
         case_sensitive=False,
+        extra="ignore",
     )
 
 
