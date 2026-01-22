@@ -8,6 +8,7 @@ from bt.strategies.implementations import (
     MomentumStrategy,
     StrategyFactory,
     VBOPortfolioStrategy,
+    VBOSingleCoinStrategy,
     VolatilityBreakoutStrategy,
 )
 
@@ -118,6 +119,63 @@ class TestVBOPortfolioStrategy:
         errors = strategy.validate()
         assert len(errors) > 0
         assert any("noise_ratio" in e for e in errors)
+
+
+class TestVBOSingleCoinStrategy:
+    """Test VBOSingleCoinStrategy end-to-end."""
+
+    @pytest.mark.integration
+    def test_vbo_single_coin_backtest(self, framework: BacktestFramework, sample_market_data):
+        """Test VBO Single Coin strategy with single symbol."""
+        # Ensure BTC is in the data for market filter
+        if "BTC" not in sample_market_data:
+            pytest.skip("BTC required for VBO Single Coin strategy")
+
+        result = framework.run_backtest(
+            strategy="vbo_single_coin",
+            symbols=["ETH"],  # Trade single symbol
+            data=sample_market_data,
+            config={
+                "ma_short": 5,
+                "btc_ma": 20,
+                "noise_ratio": 0.5,
+                "btc_symbol": "BTC",
+            },
+        )
+
+        assert "VBOSingleCoin" in result["strategy"]
+        assert "performance" in result
+        assert "equity_curve" in result
+
+    @pytest.mark.integration
+    def test_vbo_single_coin_validation(self):
+        """Test VBO Single Coin validates configuration."""
+        # Valid config
+        strategy = VBOSingleCoinStrategy(ma_short=5, btc_ma=20, noise_ratio=0.5, btc_symbol="BTC")
+        assert len(strategy.validate()) == 0
+
+        # Invalid ma_short
+        strategy = VBOSingleCoinStrategy(ma_short=100)
+        errors = strategy.validate()
+        assert len(errors) > 0
+        assert any("ma_short" in e for e in errors)
+
+        # Invalid noise_ratio
+        strategy = VBOSingleCoinStrategy(noise_ratio=3.0)
+        errors = strategy.validate()
+        assert len(errors) > 0
+        assert any("noise_ratio" in e for e in errors)
+
+    @pytest.mark.integration
+    def test_vbo_single_coin_uses_all_in_allocation(self):
+        """Test VBO Single Coin uses all-in allocation."""
+        strategy = VBOSingleCoinStrategy(ma_short=5, btc_ma=20, noise_ratio=0.5)
+        allocation = strategy.get_allocation_func()
+
+        # Check it's an AllInAllocation
+        from bt.strategies.components.allocations import AllInAllocation
+
+        assert isinstance(allocation, AllInAllocation)
 
 
 class TestMomentumStrategy:

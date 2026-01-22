@@ -10,6 +10,7 @@ from bt.strategies.implementations.strategies import (
     MomentumStrategy,
     VBOPortfolioStrategy,
     VBORegimeStrategy,
+    VBOSingleCoinStrategy,
     VolatilityBreakoutStrategy,
 )
 
@@ -39,6 +40,7 @@ class StrategyFactory:
             "vbo": VolatilityBreakoutStrategy,  # Alias for VBO
             "momentum": MomentumStrategy,
             "buy_and_hold": BuyAndHoldStrategy,
+            "vbo_single_coin": VBOSingleCoinStrategy,
             "vbo_portfolio": VBOPortfolioStrategy,
             "vbo_regime": VBORegimeStrategy,
         }
@@ -58,6 +60,7 @@ class StrategyFactory:
             "vbo",
             "momentum",
             "buy_and_hold",
+            "vbo_single_coin",
             "vbo_portfolio",
             "vbo_regime",
         ]
@@ -108,6 +111,17 @@ class StrategyFactory:
                 "description": "Simple buy and hold strategy",
                 "parameters": [],
                 "default_config": {},
+            },
+            "vbo_single_coin": {
+                "name": "VBO Single Coin",
+                "description": "Single-asset VBO strategy with BTC market filter and all-in allocation",
+                "parameters": ["ma_short", "btc_ma", "noise_ratio", "btc_symbol"],
+                "default_config": {
+                    "ma_short": 5,
+                    "btc_ma": 20,
+                    "noise_ratio": 0.5,
+                    "btc_symbol": "BTC",
+                },
             },
             "vbo_portfolio": {
                 "name": "VBO Portfolio",

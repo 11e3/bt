@@ -15,6 +15,7 @@ from bt.strategies.implementations import (
     StrategyFactory,
     VBOPortfolioStrategy,
     VBORegimeStrategy,
+    VBOSingleCoinStrategy,
     VolatilityBreakoutStrategy,
 )
 
@@ -260,6 +261,15 @@ class StrategyRegistry:
             strategy_class=BuyAndHoldStrategy,
             category="Simple",
             description="Simple buy and hold strategy",
+            author="Framework Team",
+        )
+
+        # Register VBO Single Coin strategy
+        self.register_strategy(
+            name="vbo_single_coin",
+            strategy_class=VBOSingleCoinStrategy,
+            category="Breakout",
+            description="Single-asset VBO strategy with BTC market filter and all-in allocation",
             author="Framework Team",
         )
 

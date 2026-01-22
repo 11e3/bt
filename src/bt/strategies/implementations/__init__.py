@@ -11,6 +11,7 @@ from bt.strategies.implementations.strategies import (
     MomentumStrategy,
     VBOPortfolioStrategy,
     VBORegimeStrategy,
+    VBOSingleCoinStrategy,
     VolatilityBreakoutStrategy,
 )
 
@@ -20,6 +21,7 @@ __all__ = [
     "VolatilityBreakoutStrategy",
     "MomentumStrategy",
     "BuyAndHoldStrategy",
+    "VBOSingleCoinStrategy",
     "VBOPortfolioStrategy",
     "VBORegimeStrategy",
     # Factory
