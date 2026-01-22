@@ -61,16 +61,26 @@ class TestFullBacktestWorkflow:
         assert isinstance(trades, list)
         if trades:  # Only validate if there are trades
             trade = trades[0]
-            # Trade format from PerformanceTracker uses these fields
-            required_trade_fields = [
-                "symbol",
-                "date",
-                "action",
-                "price",
-                "quantity",
-            ]
-            for field in required_trade_fields:
-                assert field in trade
+            # Trade format uses entry/exit pattern
+            # Support both Trade model objects and dict format
+            if hasattr(trade, "symbol"):
+                # Trade model object
+                assert trade.symbol is not None
+                assert trade.entry_date is not None
+                assert trade.exit_date is not None
+                assert trade.quantity is not None
+            else:
+                # Dict format
+                required_trade_fields = [
+                    "symbol",
+                    "entry_date",
+                    "exit_date",
+                    "entry_price",
+                    "exit_price",
+                    "quantity",
+                ]
+                for field in required_trade_fields:
+                    assert field in trade
 
     @pytest.mark.integration
     def test_multi_symbol_correlated_backtest(

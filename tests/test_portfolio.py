@@ -89,9 +89,9 @@ class TestPortfolio:
         quantity = Quantity(Decimal("0.1"))
         portfolio.buy("BTC", buy_price, quantity, datetime.now(tz=timezone.utc))
 
-        # Then sell
+        # Then sell (full position)
         sell_price = Price(Decimal("55000000"))
-        success = portfolio.sell("BTC", sell_price, datetime.now(tz=timezone.utc))
+        success = portfolio.sell("BTC", sell_price, quantity, datetime.now(tz=timezone.utc))
 
         assert success
         position = portfolio.get_position("BTC")
@@ -116,7 +116,9 @@ class TestPortfolio:
             slippage=Percentage(sample_slippage),
         )
 
-        success = portfolio.sell("BTC", Price(Decimal("50000000")), datetime.now(tz=timezone.utc))
+        success = portfolio.sell(
+            "BTC", Price(Decimal("50000000")), Quantity(Decimal("1")), datetime.now(tz=timezone.utc)
+        )
 
         assert not success
         assert len(portfolio.trades) == 0

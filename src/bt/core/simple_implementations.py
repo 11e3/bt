@@ -269,12 +269,18 @@ class SimplePortfolio(Portfolio):
         if entry_date is None:
             logger.warning(f"Position {symbol} has no entry_date, using exit_date")
             entry_date = date
-        elif entry_date > date:
-            # This can happen if position data is corrupted or dates are out of order
-            logger.warning(
-                f"Position {symbol} entry_date ({entry_date}) > exit_date ({date}), using exit_date"
+        else:
+            # Normalize to tz-naive for comparison to avoid tz-aware/tz-naive mismatch
+            entry_naive = (
+                entry_date.replace(tzinfo=None) if hasattr(entry_date, "replace") else entry_date
             )
-            entry_date = date
+            date_naive = date.replace(tzinfo=None) if hasattr(date, "replace") else date
+            if entry_naive > date_naive:
+                # This can happen if position data is corrupted or dates are out of order
+                logger.warning(
+                    f"Position {symbol} entry_date ({entry_date}) > exit_date ({date}), using exit_date"
+                )
+                entry_date = date
 
         trade = Trade(
             symbol=symbol,

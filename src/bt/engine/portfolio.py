@@ -11,6 +11,7 @@ import pandas as pd
 
 from bt.domain.models import Position, Trade
 from bt.domain.types import Amount, Fee, Percentage, Price, Quantity
+from bt.interfaces.core import Portfolio as PortfolioABC
 from bt.utils.constants import ONE
 from bt.utils.decimal_cache import get_decimal
 from bt.utils.logging import get_logger
@@ -18,7 +19,7 @@ from bt.utils.logging import get_logger
 logger = get_logger(__name__)
 
 
-class Portfolio:
+class Portfolio(PortfolioABC):
     """Manages portfolio state including cash, positions, and trades.
 
     Handles:
@@ -43,7 +44,7 @@ class Portfolio:
             slippage: Slippage as decimal
         """
         self.initial_cash = initial_cash
-        self.cash = initial_cash
+        self._cash = initial_cash
         self.fee = fee
         self.slippage = slippage
 
@@ -57,6 +58,16 @@ class Portfolio:
             "Portfolio initialized",
             extra={"initial_cash": float(initial_cash), "fee": float(fee)},
         )
+
+    @property
+    def cash(self) -> Decimal:
+        """Available cash."""
+        return Decimal(self._cash)
+
+    @cash.setter
+    def cash(self, value: Amount) -> None:
+        """Set available cash."""
+        self._cash = value
 
     def get_position(self, symbol: str) -> Position:
         """Get or create position for a symbol.

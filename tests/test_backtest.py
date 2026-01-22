@@ -9,8 +9,10 @@ import pytest
 from bt.domain.models import BacktestConfig
 from bt.domain.types import Amount, Fee, Percentage, Price, Quantity
 from bt.engine.backtest import BacktestEngine
-from bt.engine.data_provider import DataProvider
+from bt.engine.data_provider import InMemoryDataProvider
 from bt.engine.portfolio import Portfolio
+from bt.interfaces.core import DataProvider as DataProviderABC
+from bt.interfaces.core import Portfolio as PortfolioABC
 
 
 @pytest.fixture
@@ -51,12 +53,13 @@ class TestBacktestEngineInit:
         engine = BacktestEngine(config=sample_config)
 
         assert engine.config == sample_config
-        assert isinstance(engine.data_provider, DataProvider)
-        assert isinstance(engine.portfolio, Portfolio)
+        # Use ABC interfaces for isinstance checks (allows any concrete implementation)
+        assert isinstance(engine.data_provider, DataProviderABC)
+        assert isinstance(engine.portfolio, PortfolioABC)
 
     def test_custom_dependencies(self, sample_config: BacktestConfig) -> None:
         """Test engine uses injected dependencies."""
-        custom_provider = DataProvider()
+        custom_provider = InMemoryDataProvider()
         custom_portfolio = Portfolio(
             initial_cash=Amount(Decimal("5000000")),
             fee=Fee(Decimal("0.001")),

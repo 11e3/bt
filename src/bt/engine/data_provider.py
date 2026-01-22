@@ -22,17 +22,22 @@ class InMemoryDataProvider(DataProvider):
 
     def load_data(self, symbol: str, df: pd.DataFrame) -> None:
         """Load data for a symbol."""
+        # Sort by datetime to ensure chronological order
+        if "datetime" in df.columns:
+            df = df.sort_values("datetime").reset_index(drop=True)
         self._data[symbol] = df
         self._current_bar[symbol] = 0
 
     def get_bar(self, symbol: str, offset: int = 0) -> pd.Series | None:
         """Get current bar data for a symbol."""
-        if symbol not in self._data or self._current_bar[symbol] + offset >= len(
-            self._data[symbol]
-        ):
+        if symbol not in self._data:
             return None
 
-        return self._data[symbol].iloc[self._current_bar[symbol] + offset]
+        idx = self._current_bar[symbol] + offset
+        if idx < 0 or idx >= len(self._data[symbol]):
+            return None
+
+        return self._data[symbol].iloc[idx]
 
     def get_bars(self, symbol: str, count: int) -> pd.DataFrame | None:
         """Get multiple bars for a symbol."""
@@ -58,16 +63,19 @@ class InMemoryDataProvider(DataProvider):
             self._current_bar[symbol] += 1
 
     def has_more_data(self) -> bool:
-        """Check if there is more data available."""
+        """Check if there is more data available after current bar."""
         return any(
-            self._current_bar.get(symbol, 0) < len(self._data.get(symbol, pd.DataFrame()))
+            self._current_bar.get(symbol, 0) + 1 < len(self._data.get(symbol, pd.DataFrame()))
             for symbol in self._data
         )
 
     def set_current_bar(self, symbol: str, index: int) -> None:
         """Set current bar index."""
-        if symbol in self._data:
-            self._current_bar[symbol] = index
+        if symbol not in self._data:
+            raise ValueError(f"Symbol '{symbol}' not loaded")
+        if index < 0 or index >= len(self._data[symbol]):
+            raise ValueError(f"Index {index} out of bounds for symbol '{symbol}'")
+        self._current_bar[symbol] = index
 
     def get_prices_batch(self, symbols: list[str]) -> dict[str, float]:
         """Get current close prices for multiple symbols in one operation.

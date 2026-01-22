@@ -50,6 +50,30 @@ def pytest_collection_modifyitems(config, items):
 # === BASIC FIXTURES ===
 
 
+@pytest.fixture
+def sample_initial_cash():
+    """Provide sample initial cash for portfolio testing."""
+    from decimal import Decimal
+
+    return Decimal("10000000")
+
+
+@pytest.fixture
+def sample_fee():
+    """Provide sample fee for portfolio testing."""
+    from decimal import Decimal
+
+    return Decimal("0.0005")
+
+
+@pytest.fixture
+def sample_slippage():
+    """Provide sample slippage for portfolio testing."""
+    from decimal import Decimal
+
+    return Decimal("0.0005")
+
+
 @pytest.fixture(scope="session")
 def test_config_manager() -> ConfigurationManager:
     """Provide test configuration manager."""

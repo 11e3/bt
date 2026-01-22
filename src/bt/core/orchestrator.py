@@ -77,7 +77,7 @@ class BacktestOrchestrator:
         # Get required services
         self.data_provider = container.get(IDataProvider)
         self.portfolio = container.get(IPortfolio)
-        self.executor = OrderExecutor(container, self.logger)
+        self.executor = ContainerOrderExecutor(container, self.logger)
         self.tracker = PerformanceTracker(container, self.logger)
 
     def run_backtest(
@@ -276,8 +276,8 @@ class BacktestOrchestrator:
         }
 
 
-class OrderExecutor:
-    """Handles order execution logic and validation."""
+class ContainerOrderExecutor:
+    """Handles order execution logic and validation using DI container."""
 
     def __init__(self, container: "IContainer", logger: ILogger | None = None):
         """Initialize order executor."""
