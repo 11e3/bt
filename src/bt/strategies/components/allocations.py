@@ -39,8 +39,14 @@ class AllInAllocation(BaseAllocation):
         if engine.portfolio.cash <= 0 or price <= 0:
             return 0.0
 
-        # Calculate cost multiplier (1 + fee + slippage)
-        cost_multiplier = 1 + float(engine.config.fee) + float(engine.config.slippage)
+        # portfolio.buy() calculates:
+        #   exec_price = price * (1 + slippage)
+        #   cost = exec_price * qty * (1 + fee)
+        # So: cost = price * (1 + slippage) * (1 + fee) * qty
+        # To spend all cash: qty = cash / (price * (1 + slippage) * (1 + fee))
+        fee = float(engine.config.fee)
+        slippage = float(engine.config.slippage)
+        cost_multiplier = (1 + slippage) * (1 + fee)
         max_affordable = float(engine.portfolio.cash) / (price * cost_multiplier)
 
         return max_affordable * 0.99999  # Safety buffer
@@ -177,15 +183,22 @@ class VBOPortfolioAllocation(BaseAllocation):
         if buy_value <= 0:
             return 0.0
 
-        # Return quantity that when processed by portfolio.buy() results in
-        # spending exactly buy_value
+        # Fee model difference between standalone and framework:
         #
-        # portfolio.buy() calculates:
-        #   exec_price = price * (1 + slippage)
-        #   cost = exec_price * qty * (1 + fee)
+        # Standalone (Upbit-style):
+        #   buy_fee = buy_value * fee (fee from investment amount)
+        #   qty = (buy_value - buy_fee) / exec_price
+        #   cash -= buy_value
         #
-        # We want: cost = buy_value
-        # So: qty = buy_value / (price * (1 + slippage) * (1 + fee))
+        # Framework (standard):
+        #   cost = exec_price * qty * (1 + fee) (fee on transaction)
+        #   cash -= cost
+        #
+        # To match standalone exactly, we compute qty that results in
+        # portfolio.buy() spending exactly buy_value:
+        #   cost = exec_price * qty * (1 + fee) = buy_value
+        #   qty = buy_value / (exec_price * (1 + fee))
+        #       = buy_value / (price * (1 + slippage) * (1 + fee))
         fee = float(engine.config.fee)
         slippage = float(engine.config.slippage)
         return buy_value / (price * (1 + slippage) * (1 + fee))

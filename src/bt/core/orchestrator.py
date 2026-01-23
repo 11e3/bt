@@ -135,9 +135,14 @@ class BacktestOrchestrator:
 
     def _execute_backtest_loop(self, strategy: IStrategy, symbols: list[str]) -> None:
         """Execute main backtest event loop."""
-        # Calculate start index based on lookback configuration
-        start_idx = self.config.lookback * self.config.multiplier
-        for symbol in symbols:
+        # Calculate start index based on maximum lookback needed
+        # Consider: lookback*multiplier (VBO), btc_ma (Portfolio), mom_lookback (Momentum)
+        lookback_vbo = self.config.lookback * self.config.multiplier
+        btc_ma = self.config.get("btc_ma", 20)
+        mom_lookback = self.config.mom_lookback
+        start_idx = max(lookback_vbo, btc_ma, mom_lookback)
+        # Set current bar for ALL loaded symbols (including reference symbols like BTC)
+        for symbol in self.data_provider.symbols:
             self.data_provider.set_current_bar(symbol, start_idx)
 
         while self.data_provider.has_more_data():

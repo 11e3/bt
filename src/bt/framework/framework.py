@@ -55,6 +55,10 @@ class BacktestFramework:
         self.logger = logger or get_logger_adapter("bt.framework")
         self._config = config or {}
 
+        # Set config on container BEFORE registering services
+        # This allows bootstrap to use the correct fee/slippage values
+        self.container._config = self._config
+
         # Register core services
         register_core_services(self.container)
         with contextlib.suppress(BaseException):
