@@ -33,23 +33,34 @@ class BaseAllocation(IStrategyComponent):
 
 
 class AllInAllocation(BaseAllocation):
-    """Buy with all available cash accounting for costs."""
+    """Buy with all available cash accounting for costs.
+
+    Matches standalone/Upbit-style fee model:
+    - Fee is deducted from the investment amount (not from transaction)
+    - qty = cash * (1 - fee) / (price * (1 + slippage))
+    """
 
     def __call__(self, engine: IBacktestEngine, _symbol: str, price: float) -> float:
         if engine.portfolio.cash <= 0 or price <= 0:
             return 0.0
 
-        # portfolio.buy() calculates:
-        #   exec_price = price * (1 + slippage)
-        #   cost = exec_price * qty * (1 + fee)
-        # So: cost = price * (1 + slippage) * (1 + fee) * qty
-        # To spend all cash: qty = cash / (price * (1 + slippage) * (1 + fee))
+        # Standalone/Upbit fee model:
+        #   buy_value = cash
+        #   buy_fee = buy_value * fee (fee from investment amount)
+        #   qty = (buy_value - buy_fee) / exec_price
+        #       = cash * (1 - fee) / (price * (1 + slippage))
+        #   cash = 0 after buy
+        #
+        # portfolio.buy() then calculates:
+        #   total_cost = exec_price * qty * (1 + fee)
+        #              = cash * (1 - fee) * (1 + fee)
+        #              = cash * (1 - fee²) < cash  ✓
         fee = float(engine.config.fee)
         slippage = float(engine.config.slippage)
-        cost_multiplier = (1 + slippage) * (1 + fee)
-        max_affordable = float(engine.portfolio.cash) / (price * cost_multiplier)
+        exec_price = price * (1 + slippage)
+        cash = float(engine.portfolio.cash)
 
-        return max_affordable * 0.99999  # Safety buffer
+        return cash * (1 - fee) / exec_price
 
 
 class EqualWeightAllocation(BaseAllocation):

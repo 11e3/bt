@@ -177,12 +177,16 @@ def backtest_framework(symbol: str, start: str = None, end: str = None) -> dict:
         df = df[df.index <= pd.to_datetime(end)]
         btc_df = btc_df[btc_df.index <= pd.to_datetime(end)]
 
+    # CRITICAL: Align BTC data to coin's datetime index (matching standalone behavior)
+    # The standalone does: btc_aligned = btc_df.reindex(df.index, method='ffill')
+    btc_aligned = btc_df.reindex(df.index, method="ffill")
+
     # Reset index for framework
     df = df.reset_index()
-    btc_df = btc_df.reset_index()
+    btc_aligned = btc_aligned.reset_index()
 
-    # Prepare data dict
-    data = {symbol: df, "BTC": btc_df}
+    # Prepare data dict (using aligned BTC data)
+    data = {symbol: df, "BTC": btc_aligned}
 
     # Create framework with matching config (dict format)
     framework_config = {

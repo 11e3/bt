@@ -198,8 +198,9 @@ class BacktestOrchestrator:
                     self.tracker.record_trade(symbol, current_date, "sell", sell_price, quantity)
                     self.tracker.update_equity(current_date, current_prices)
 
-        # Check buy conditions
-        elif not position.is_open:
+        # Check buy conditions (use 'if' not 'elif' to allow same-day sell-then-buy)
+        position = self.portfolio.get_position(symbol)  # Re-fetch position after potential sell
+        if not position.is_open:
             buy_signals = self._evaluate_strategy_conditions(strategy.get_buy_conditions(), symbol)
 
             if all(buy_signals):
